@@ -32,7 +32,13 @@ export const loginAPI = async (data) => {
 
         const result = await response.json();
         console.log('✅ Login exitoso:', result);
-        return { data: result };
+        
+        // Si el backend devuelve success: true, extraer los datos del nivel correcto
+        if (result.success) {
+            return { data: result };
+        } else {
+            return { data: result };
+        }
         
     } catch (error) {
         console.error('💥 Error en loginAPI:', error);

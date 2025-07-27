@@ -252,13 +252,27 @@ app.post("/api/auth/login", async (req, res) => {
       res.json({
         success: true,
         message: "Login exitoso (modo testing)",
+        // Formato compatible con AuthContext.jsx
+        usuId: 1,
+        usuFoto: null,
+        nombre: foundUser.nombre,
+        perfil: "Administrador",
+        agenda: 1,
+        instructor: 0,
+        correo: foundUser.email,
+        documento: "12345678",
+        telefono: "1234567890",
+        token: "test-token-123",
+        permisos: [],
+        ventanas: [],
+        cambioclave: 0,
+        // También mantener el formato original por compatibilidad
         user: {
           id: 1,
           email: foundUser.email,
           nombre: foundUser.nombre,
           idusuario: 1
-        },
-        token: "test-token-123"
+        }
       });
     } else {
       console.log('❌ Credenciales incorrectas para:', userEmail);
