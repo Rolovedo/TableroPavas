@@ -292,6 +292,77 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
+// Endpoint de notificaciones para testing
+app.get("/api/notifications/get_notification_count", (req, res) => {
+  console.log('📨 Solicitud de notificaciones:', req.query);
+  
+  res.json({
+    success: true,
+    count: 0,
+    notifications: []
+  });
+});
+
+// Endpoint del menú para testing
+app.get("/api/app/get_menu", (req, res) => {
+  console.log('📨 Solicitud de menú:', req.query);
+  
+  const menuItems = [
+    {
+      id: 1,
+      label: "Dashboard",
+      icon: "pi pi-fw pi-home",
+      to: "/dashboard"
+    },
+    {
+      id: 2,
+      label: "Tablero Kanban",
+      icon: "pi pi-fw pi-table",
+      to: "/tablero",
+      items: [
+        {
+          id: 21,
+          label: "Ver Tablero",
+          icon: "pi pi-fw pi-eye",
+          to: "/tablero"
+        },
+        {
+          id: 22,
+          label: "Nueva Tarea",
+          icon: "pi pi-fw pi-plus",
+          to: "/tablero/nueva"
+        }
+      ]
+    },
+    {
+      id: 3,
+      label: "Configuración",
+      icon: "pi pi-fw pi-cog",
+      items: [
+        {
+          id: 31,
+          label: "Usuarios",
+          icon: "pi pi-fw pi-users",
+          to: "/usuarios"
+        },
+        {
+          id: 32,
+          label: "Permisos",
+          icon: "pi pi-fw pi-lock",
+          to: "/permisos"
+        }
+      ]
+    }
+  ];
+  
+  res.json({
+    success: true,
+    menu: menuItems,
+    permisos: [1, 2, 3, 21, 22, 31, 32], // IDs de permisos que tiene el usuario
+    ventanas: menuItems // Para compatibilidad
+  });
+});
+
 // Catch all para debug
 app.all("*", (req, res) => {
   res.status(404).json({
@@ -305,7 +376,9 @@ app.all("*", (req, res) => {
       "GET /test-db", 
       "GET /api/test-db", 
       "POST /auth/login",
-      "POST /api/auth/login"
+      "POST /api/auth/login",
+      "GET /api/notifications/get_notification_count",
+      "GET /api/app/get_menu"
     ]
   });
 });
