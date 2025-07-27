@@ -369,18 +369,25 @@ app.get("/api/app/get_permissions_user", (req, res) => {
   
   const { usuId } = req.query;
   
+  const permissions = [1, 2, 3, 21, 22, 31, 32];
+  const windows = [
+    { id: 1, nombre: "Dashboard", ruta: "/dashboard", activo: 1 },
+    { id: 2, nombre: "Tablero Kanban", ruta: "/tablero", activo: 1 },
+    { id: 21, nombre: "Ver Tablero", ruta: "/tablero", activo: 1 },
+    { id: 22, nombre: "Nueva Tarea", ruta: "/tablero/nueva", activo: 1 },
+    { id: 31, nombre: "Usuarios", ruta: "/usuarios", activo: 1 },
+    { id: 32, nombre: "Permisos", ruta: "/permisos", activo: 1 }
+  ];
+  
   res.json({
     success: true,
     usuId: usuId || 1,
-    permisos: [1, 2, 3, 21, 22, 31, 32], // Todos los permisos para testing
-    ventanas: [
-      { id: 1, nombre: "Dashboard", ruta: "/dashboard", activo: 1 },
-      { id: 2, nombre: "Tablero Kanban", ruta: "/tablero", activo: 1 },
-      { id: 21, nombre: "Ver Tablero", ruta: "/tablero", activo: 1 },
-      { id: 22, nombre: "Nueva Tarea", ruta: "/tablero/nueva", activo: 1 },
-      { id: 31, nombre: "Usuarios", ruta: "/usuarios", activo: 1 },
-      { id: 32, nombre: "Permisos", ruta: "/permisos", activo: 1 }
-    ]
+    // Propiedades que espera el AuthContext
+    permissions: permissions,
+    windows: windows,
+    // También mantener formato antiguo por compatibilidad
+    permisos: permissions,
+    ventanas: windows
   });
 });
 
@@ -388,7 +395,7 @@ app.get("/api/app/get_permissions_user", (req, res) => {
 app.get("/api/app/verify_token", (req, res) => {
   console.log('📨 Verificación de token:', req.headers);
   
-  // En testing, siempre devolver token válido
+  // En testing, siempre devolver token válido con información completa
   res.json({
     success: true,
     valid: true,
@@ -397,7 +404,32 @@ app.get("/api/app/verify_token", (req, res) => {
       id: 1,
       email: "admin@tablero.com",
       nombre: "Administrador"
-    }
+    },
+    // Datos adicionales que puede necesitar el AuthContext
+    usuId: 1,
+    nombre: "Administrador",
+    correo: "admin@tablero.com",
+    token: "test-token-123"
+  });
+});
+
+// También agregar endpoint POST para verify_token por si acaso
+app.post("/api/app/verify_token", (req, res) => {
+  console.log('📨 Verificación de token POST:', req.body, req.headers);
+  
+  res.json({
+    success: true,
+    valid: true,
+    message: "Token válido (modo testing POST)",
+    user: {
+      id: 1,
+      email: "admin@tablero.com",
+      nombre: "Administrador"
+    },
+    usuId: 1,
+    nombre: "Administrador",
+    correo: "admin@tablero.com",
+    token: "test-token-123"
   });
 });
 
@@ -418,7 +450,8 @@ app.all("*", (req, res) => {
       "GET /api/notifications/get_notification_count",
       "GET /api/app/get_menu",
       "GET /api/app/get_permissions_user",
-      "GET /api/app/verify_token"
+      "GET /api/app/verify_token",
+      "POST /api/app/verify_token"
     ]
   });
 });
