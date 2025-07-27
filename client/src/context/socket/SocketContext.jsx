@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect } from "react";
-import { urlSocket, pathSocket } from "@utils/converAndConst";
+// import { urlSocket, pathSocket } from "@utils/converAndConst";
 // import io from "socket.io-client";
 
 // Deshabilitar Socket.io temporalmente para deployment
