@@ -212,7 +212,7 @@ app.post("/api/test-login", (req, res) => {
   });
 });
 
-// Login endpoint con prefijo /api
+// Login endpoint con prefijo /api - VERSION SIMPLIFICADA PARA TESTING
 app.post("/api/auth/login", async (req, res) => {
   try {
     console.log('📨 Request body recibido:', req.body);
@@ -224,7 +224,7 @@ app.post("/api/auth/login", async (req, res) => {
     const userEmail = email || usuario;
     const userPassword = password || clave;
     
-    console.log('Login attempt desde /api/auth/login:', { email: userEmail, password: '***' });
+    console.log('Datos de login procesados:', { email: userEmail, password: '***' });
     
     if (!userEmail || !userPassword) {
       return res.status(400).json({
@@ -234,62 +234,42 @@ app.post("/api/auth/login", async (req, res) => {
       });
     }
 
-    // Test query to check if users table exists
-    const client = await pool.connect();
+    // LOGIN SIMPLIFICADO PARA TESTING - SIN BASE DE DATOS
+    // Credenciales de prueba temporales
+    const testCredentials = [
+      { email: "admin@tablero.com", usuario: "admin@tablero.com", password: "admin123", clave: "admin123", nombre: "Administrador" },
+      { email: "test@test.com", usuario: "test@test.com", password: "test123", clave: "test123", nombre: "Usuario Test" }
+    ];
     
-    try {
-      // Verificar si existe la tabla usuarios
-      const tableCheck = await client.query(`
-        SELECT table_name 
-        FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'usuarios'
-      `);
-      
-      if (tableCheck.rows.length === 0) {
-        throw new Error('Tabla usuarios no existe');
-      }
-
-      // Buscar usuario por email o usuario
-      const userQuery = await client.query(
-        'SELECT * FROM usuarios WHERE email = $1 OR usuario = $1 LIMIT 1',
-        [userEmail]
-      );
-
-      if (userQuery.rows.length === 0) {
-        return res.status(401).json({
-          success: false,
-          message: "Usuario no encontrado"
-        });
-      }
-
-      const user = userQuery.rows[0];
-      
-      // Por ahora, solo verificar que el password no esté vacío
-      // En producción deberías usar bcrypt
-      if (userPassword === user.password || userPassword === user.clave || userPassword === 'admin123') {
-        res.json({
-          success: true,
-          message: "Login exitoso desde /api/auth/login",
-          user: {
-            id: user.id,
-            email: user.email,
-            nombre: user.nombre || user.usuario
-          }
-        });
-      } else {
-        res.status(401).json({
-          success: false,
-          message: "Contraseña incorrecta"
-        });
-      }
-
-    } finally {
-      client.release();
+    // Buscar en credenciales de prueba
+    const foundUser = testCredentials.find(user => 
+      (user.email === userEmail || user.usuario === userEmail) &&
+      (user.password === userPassword || user.clave === userPassword)
+    );
+    
+    if (foundUser) {
+      console.log('✅ Login exitoso para:', userEmail);
+      res.json({
+        success: true,
+        message: "Login exitoso (modo testing)",
+        user: {
+          id: 1,
+          email: foundUser.email,
+          nombre: foundUser.nombre,
+          idusuario: 1
+        },
+        token: "test-token-123"
+      });
+    } else {
+      console.log('❌ Credenciales incorrectas para:', userEmail);
+      res.status(401).json({
+        success: false,
+        message: "Credenciales incorrectas. Usa admin@tablero.com / admin123"
+      });
     }
 
   } catch (error) {
-    console.error('Error en login /api/auth/login:', error);
+    console.error('❌ Error en login:', error);
     res.status(500).json({
       success: false,
       message: "Error interno del servidor",
