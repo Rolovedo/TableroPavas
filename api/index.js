@@ -192,17 +192,45 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
+// Test login endpoint que no requiere BD
+app.post("/api/test-login", (req, res) => {
+  console.log('📨 Test login - Request body:', req.body);
+  console.log('📨 Test login - Headers:', req.headers);
+  
+  const { email, password, usuario, clave } = req.body;
+  
+  res.json({
+    success: true,
+    message: "Test login funcionando",
+    received: {
+      email: email || "no recibido",
+      password: password ? "***" : "no recibido",
+      usuario: usuario || "no recibido", 
+      clave: clave ? "***" : "no recibido"
+    },
+    body: req.body
+  });
+});
+
 // Login endpoint con prefijo /api
 app.post("/api/auth/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    console.log('📨 Request body recibido:', req.body);
+    console.log('📨 Headers:', req.headers);
     
-    console.log('Login attempt desde /api/auth/login:', { email, password: '***' });
+    const { email, password, usuario, clave } = req.body;
     
-    if (!email || !password) {
+    // Aceptar tanto email/password como usuario/clave
+    const userEmail = email || usuario;
+    const userPassword = password || clave;
+    
+    console.log('Login attempt desde /api/auth/login:', { email: userEmail, password: '***' });
+    
+    if (!userEmail || !userPassword) {
       return res.status(400).json({
         success: false,
-        message: "Email y contraseña son requeridos"
+        message: "Email/Usuario y contraseña/clave son requeridos",
+        received: { email: !!userEmail, password: !!userPassword }
       });
     }
 
@@ -222,10 +250,10 @@ app.post("/api/auth/login", async (req, res) => {
         throw new Error('Tabla usuarios no existe');
       }
 
-      // Buscar usuario
+      // Buscar usuario por email o usuario
       const userQuery = await client.query(
-        'SELECT * FROM usuarios WHERE email = $1 LIMIT 1',
-        [email]
+        'SELECT * FROM usuarios WHERE email = $1 OR usuario = $1 LIMIT 1',
+        [userEmail]
       );
 
       if (userQuery.rows.length === 0) {
@@ -239,14 +267,14 @@ app.post("/api/auth/login", async (req, res) => {
       
       // Por ahora, solo verificar que el password no esté vacío
       // En producción deberías usar bcrypt
-      if (password === user.password || password === 'admin123') {
+      if (userPassword === user.password || userPassword === user.clave || userPassword === 'admin123') {
         res.json({
           success: true,
           message: "Login exitoso desde /api/auth/login",
           user: {
             id: user.id,
             email: user.email,
-            nombre: user.nombre
+            nombre: user.nombre || user.usuario
           }
         });
       } else {
