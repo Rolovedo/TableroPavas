@@ -49,8 +49,16 @@ app.get("/", (req, res) => {
   res.json({ 
     message: "API funcionando correctamente", 
     timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV 
+    env: process.env.NODE_ENV,
+    url: req.url,
+    path: req.path
   });
+});
+
+// Debug middleware para ver qué rutas llegan
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url} - Path: ${req.path}`);
+  next();
 });
 
 // Test database connection
@@ -150,6 +158,21 @@ app.post("/auth/login", async (req, res) => {
       error: error.message
     });
   }
+});
+
+// Catch all para debug
+app.all("*", (req, res) => {
+  res.status(404).json({
+    message: "Endpoint no encontrado",
+    method: req.method,
+    url: req.url,
+    path: req.path,
+    availableRoutes: [
+      "GET /",
+      "GET /test-db", 
+      "POST /auth/login"
+    ]
+  });
 });
 
 export default app;
