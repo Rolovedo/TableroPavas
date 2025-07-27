@@ -23,28 +23,8 @@
       "dest": "/server/app.js"
     },
     {
-      "src": "/static/(.*)",
-      "dest": "/client/build/static/$1"
-    },
-    {
-      "src": "/images/(.*)",
-      "dest": "/client/build/images/$1"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/client/build/assets/$1"
-    },
-    {
-      "src": "/(favicon\\.ico|manifest\\.json|robots\\.txt)",
-      "dest": "/client/build/$1"
-    },
-    {
-      "src": "/",
-      "dest": "/client/build/index.html"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/client/build/index.html"
+      "dest": "/client/$1"
     }
   ],
   "env": {
