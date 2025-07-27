@@ -363,6 +363,44 @@ app.get("/api/app/get_menu", (req, res) => {
   });
 });
 
+// Endpoint de permisos de usuario para testing
+app.get("/api/app/get_permissions_user", (req, res) => {
+  console.log('📨 Solicitud de permisos de usuario:', req.query);
+  
+  const { usuId } = req.query;
+  
+  res.json({
+    success: true,
+    usuId: usuId || 1,
+    permisos: [1, 2, 3, 21, 22, 31, 32], // Todos los permisos para testing
+    ventanas: [
+      { id: 1, nombre: "Dashboard", ruta: "/dashboard", activo: 1 },
+      { id: 2, nombre: "Tablero Kanban", ruta: "/tablero", activo: 1 },
+      { id: 21, nombre: "Ver Tablero", ruta: "/tablero", activo: 1 },
+      { id: 22, nombre: "Nueva Tarea", ruta: "/tablero/nueva", activo: 1 },
+      { id: 31, nombre: "Usuarios", ruta: "/usuarios", activo: 1 },
+      { id: 32, nombre: "Permisos", ruta: "/permisos", activo: 1 }
+    ]
+  });
+});
+
+// Endpoint de verificación de token para testing
+app.get("/api/app/verify_token", (req, res) => {
+  console.log('📨 Verificación de token:', req.headers);
+  
+  // En testing, siempre devolver token válido
+  res.json({
+    success: true,
+    valid: true,
+    message: "Token válido (modo testing)",
+    user: {
+      id: 1,
+      email: "admin@tablero.com",
+      nombre: "Administrador"
+    }
+  });
+});
+
 // Catch all para debug
 app.all("*", (req, res) => {
   res.status(404).json({
@@ -378,7 +416,9 @@ app.all("*", (req, res) => {
       "POST /auth/login",
       "POST /api/auth/login",
       "GET /api/notifications/get_notification_count",
-      "GET /api/app/get_menu"
+      "GET /api/app/get_menu",
+      "GET /api/app/get_permissions_user",
+      "GET /api/app/verify_token"
     ]
   });
 });
