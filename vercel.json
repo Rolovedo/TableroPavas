@@ -27,12 +27,16 @@
       "dest": "/client/build/static/$1"
     },
     {
-      "src": "/favicon.ico",
-      "dest": "/client/build/favicon.ico"
+      "src": "/images/(.*)",
+      "dest": "/client/build/images/$1"
     },
     {
-      "src": "/manifest.json",
-      "dest": "/client/build/manifest.json"
+      "src": "/assets/(.*)",
+      "dest": "/client/build/assets/$1"
+    },
+    {
+      "src": "/(favicon\\.ico|manifest\\.json|robots\\.txt)",
+      "dest": "/client/build/$1"
     },
     {
       "src": "/(.*)",
