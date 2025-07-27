@@ -307,59 +307,114 @@ app.get("/api/notifications/get_notification_count", (req, res) => {
 app.get("/api/app/get_menu", (req, res) => {
   console.log('📨 Solicitud de menú:', req.query);
   
-  const menuItems = [
+  // Estructura de menú que espera el Layout.jsx
+  const padres = [
     {
       id: 1,
       label: "Dashboard",
       icon: "pi pi-fw pi-home",
-      to: "/dashboard"
+      toa: "dashboard"
     },
     {
       id: 2,
       label: "Tablero Kanban",
       icon: "pi pi-fw pi-table",
-      to: "/tablero",
-      items: [
-        {
-          id: 21,
-          label: "Ver Tablero",
-          icon: "pi pi-fw pi-eye",
-          to: "/tablero"
-        },
-        {
-          id: 22,
-          label: "Nueva Tarea",
-          icon: "pi pi-fw pi-plus",
-          to: "/tablero/nueva"
-        }
-      ]
+      toa: "tablero"
     },
     {
       id: 3,
       label: "Configuración",
       icon: "pi pi-fw pi-cog",
-      items: [
-        {
-          id: 31,
-          label: "Usuarios",
-          icon: "pi pi-fw pi-users",
-          to: "/usuarios"
-        },
-        {
-          id: 32,
-          label: "Permisos",
-          icon: "pi pi-fw pi-lock",
-          to: "/permisos"
-        }
-      ]
+      toa: null // No tiene ruta directa, solo submenús
+    }
+  ];
+
+  const hijos = [
+    {
+      id: 21,
+      padre: 2,
+      label: "Ver Tablero",
+      icon: "pi pi-fw pi-eye",
+      toa: "tablero"
+    },
+    {
+      id: 22,
+      padre: 2,
+      label: "Nueva Tarea",
+      icon: "pi pi-fw pi-plus",
+      toa: "tablero/nueva"
+    },
+    {
+      id: 31,
+      padre: 3,
+      label: "Usuarios",
+      icon: "pi pi-fw pi-users",
+      toa: "usuarios"
+    },
+    {
+      id: 32,
+      padre: 3,
+      label: "Permisos",
+      icon: "pi pi-fw pi-lock",
+      toa: "permisos"
     }
   ];
   
   res.json({
     success: true,
-    menu: menuItems,
+    // Formato que espera Layout.jsx
+    padres: padres,
+    hijos: hijos,
+    // También mantener formato anterior por compatibilidad
+    menu: [
+      {
+        id: 1,
+        label: "Dashboard",
+        icon: "pi pi-fw pi-home",
+        to: "/dashboard"
+      },
+      {
+        id: 2,
+        label: "Tablero Kanban",
+        icon: "pi pi-fw pi-table",
+        to: "/tablero",
+        items: [
+          {
+            id: 21,
+            label: "Ver Tablero",
+            icon: "pi pi-fw pi-eye",
+            to: "/tablero"
+          },
+          {
+            id: 22,
+            label: "Nueva Tarea",
+            icon: "pi pi-fw pi-plus",
+            to: "/tablero/nueva"
+          }
+        ]
+      },
+      {
+        id: 3,
+        label: "Configuración",
+        icon: "pi pi-fw pi-cog",
+        items: [
+          {
+            id: 31,
+            label: "Usuarios",
+            icon: "pi pi-fw pi-users",
+            to: "/usuarios"
+          },
+          {
+            id: 32,
+            label: "Permisos",
+            icon: "pi pi-fw pi-lock",
+            to: "/permisos"
+          }
+        ]
+      }
+    ],
     permisos: [1, 2, 3, 21, 22, 31, 32], // IDs de permisos que tiene el usuario
-    ventanas: menuItems // Para compatibilidad
+    ventanas: padres.concat(hijos) // Para compatibilidad
   });
 });
 
