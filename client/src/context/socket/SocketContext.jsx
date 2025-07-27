@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useEffect } from "react";
 import { urlSocket, pathSocket } from "@utils/converAndConst";
-import io from "socket.io-client";
+// import io from "socket.io-client";
 
+// Deshabilitar Socket.io temporalmente para deployment
+const socketConfig = null; 
+/* 
 const socketConfig = io(urlSocket, {
     forceNew: true,
     transports: ["polling"],
@@ -9,6 +12,7 @@ const socketConfig = io(urlSocket, {
     path: pathSocket,
     reconnectionAttempts: 3,
 });
+*/
 
 // Crea un contexto para los sockets
 const SocketContext = createContext();

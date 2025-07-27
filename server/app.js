@@ -41,7 +41,9 @@ app.use(cors({
     "http://localhost:80",
     "http://localhost:3000",
     "http://localhost:3001",
-    "https://pavastecnologia.com"
+    "https://pavastecnologia.com",
+    "https://tablero-pavas.vercel.app",
+    "https://*.vercel.app"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true

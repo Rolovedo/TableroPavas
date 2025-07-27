@@ -9,18 +9,14 @@
       }
     },
     {
-      "src": "server/app.js",
+      "src": "api/index.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server/app.js"
-    },
-    {
-      "src": "/socket.io/(.*)",
-      "dest": "/server/app.js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/(.*)",
@@ -33,7 +29,12 @@
     "NODE_OPTIONS": "--openssl-legacy-provider",
     "REACT_APP_API_URL": "https://tablero-pavas.vercel.app/api",
     "REACT_APP_BASE_URL": "https://tablero-pavas.vercel.app",
-    "REACT_APP_SOCKET_URL": "https://tablero-pavas.vercel.app"
+    "REACT_APP_SOCKET_URL": "https://tablero-pavas.vercel.app",
+    "DB_HOST": "db.eukvsggruwdokftylssc.supabase.co",
+    "DB_PORT": "5432",
+    "DB_USER": "postgres",
+    "DB_PASSWORD": "98631063ace",
+    "DB_NAME": "postgres"
   },
   "regions": ["iad1"]
 }
