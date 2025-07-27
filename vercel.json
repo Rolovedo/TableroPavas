@@ -30,7 +30,10 @@
   "env": {
     "NODE_ENV": "production",
     "FORCE_UPDATE": "true",
-    "NODE_OPTIONS": "--openssl-legacy-provider"
+    "NODE_OPTIONS": "--openssl-legacy-provider",
+    "REACT_APP_API_URL": "https://tablero-pavas.vercel.app/api",
+    "REACT_APP_BASE_URL": "https://tablero-pavas.vercel.app",
+    "REACT_APP_SOCKET_URL": "https://tablero-pavas.vercel.app"
   },
   "regions": ["iad1"]
 }

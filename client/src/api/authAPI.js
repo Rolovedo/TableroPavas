@@ -1,9 +1,9 @@
-// Forzar la URL correcta del backend
-const BASE_URL = 'http://localhost:5000';  // ← FUERZA EL PUERTO 5000
+// Configuración de URL por entorno
+const BASE_URL = process.env.REACT_APP_API_URL || 'https://tablero-pavas.vercel.app/api';
 
-console.log('🌐 BASE_URL forzada:', BASE_URL);
+console.log('🌐 BASE_URL configurada:', BASE_URL);
 console.log('🔍 Variables de entorno:', {
-    REACT_APP_BASE_URL: process.env.REACT_APP_BASE_URL,
+    REACT_APP_API_URL: process.env.REACT_APP_API_URL,
     NODE_ENV: process.env.NODE_ENV
 });
 

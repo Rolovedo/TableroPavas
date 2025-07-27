@@ -17,7 +17,9 @@ export const getInitials = (fullName) => {
     return (first + second).toUpperCase();
 };
 
-export const urlSocket = "http://localhost/";
+// URLs configurables por entorno
+export const urlSocket = process.env.REACT_APP_SOCKET_URL || "https://tablero-pavas.vercel.app/";
+export const urlbase = process.env.REACT_APP_BASE_URL || "https://tablero-pavas.vercel.app/";
 
 export const pathSocket = "/socket.io/";
 
@@ -41,8 +43,6 @@ export const daysOfWeek = [
     { label: "S", value: "saturday", id: 6 },
     { label: "D", value: "sunday", id: 7 },
 ];
-
-export const urlbase = "http://localhost/";
 
 export const estados = [
     { nombre: "Activo", id: 1 },
