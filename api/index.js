@@ -215,22 +215,16 @@ app.post("/api/test-login", (req, res) => {
 // Login endpoint con prefijo /api - VERSION SIMPLIFICADA PARA TESTING
 app.post("/api/auth/login", async (req, res) => {
   try {
-    console.log('📨 Request body recibido:', req.body);
-    console.log('📨 Headers:', req.headers);
-    
     const { email, password, usuario, clave } = req.body;
     
     // Aceptar tanto email/password como usuario/clave
     const userEmail = email || usuario;
     const userPassword = password || clave;
     
-    console.log('Datos de login procesados:', { email: userEmail, password: '***' });
-    
     if (!userEmail || !userPassword) {
       return res.status(400).json({
         success: false,
-        message: "Email/Usuario y contraseña/clave son requeridos",
-        received: { email: !!userEmail, password: !!userPassword }
+        message: "Email/Usuario y contraseña/clave son requeridos"
       });
     }
 
@@ -248,7 +242,6 @@ app.post("/api/auth/login", async (req, res) => {
     );
     
     if (foundUser) {
-      console.log('✅ Login exitoso para:', userEmail);
       res.json({
         success: true,
         message: "Login exitoso (modo testing)",
@@ -275,7 +268,6 @@ app.post("/api/auth/login", async (req, res) => {
         }
       });
     } else {
-      console.log('❌ Credenciales incorrectas para:', userEmail);
       res.status(401).json({
         success: false,
         message: "Credenciales incorrectas. Usa admin@tablero.com / admin123"
@@ -305,8 +297,6 @@ app.get("/api/notifications/get_notification_count", (req, res) => {
 
 // Endpoint del menú para testing
 app.get("/api/app/get_menu", (req, res) => {
-  console.log('📨 Solicitud de menú:', req.query);
-  
   // Estructura de menú que espera el Layout.jsx
   const padres = [
     {
@@ -420,8 +410,6 @@ app.get("/api/app/get_menu", (req, res) => {
 
 // Endpoint de permisos de usuario para testing
 app.get("/api/app/get_permissions_user", (req, res) => {
-  console.log('📨 Solicitud de permisos de usuario:', req.query);
-  
   const { usuId } = req.query;
   
   const permissions = [1, 2, 3, 21, 22, 31, 32];
