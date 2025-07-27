@@ -29,7 +29,8 @@
   ],
   "env": {
     "NODE_ENV": "production",
-    "FORCE_UPDATE": "true"
+    "FORCE_UPDATE": "true",
+    "NODE_OPTIONS": "--openssl-legacy-provider"
   },
   "regions": ["iad1"]
 }
