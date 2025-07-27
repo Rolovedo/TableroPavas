@@ -7,6 +7,8 @@ const init = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
       origin: [
+        "http://localhost",
+        "http://localhost:80",
         "http://localhost:3000",
         "http://localhost:3001",
         "https://pavastecnologia.com",

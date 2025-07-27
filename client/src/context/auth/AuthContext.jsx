@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
         const currentPath = window.location.pathname;
 
         if (!usuId > 0) {
-            if (currentPath !== "/ponto/" && currentPath !== "/ponto" && currentPath !== "/") {
+            if (currentPath !== "/") {
                 alert("ALERTA DE CIERRE DE SESION");
                 logout();
             }

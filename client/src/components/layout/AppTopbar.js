@@ -129,7 +129,7 @@ export const AppTopbar = (props) => {
 
     return (
         <div className="layout-topbar">
-            <Link to="/" className="layout-topbar-logo">
+            <Link to={idusuario ? "/dashboard" : "/"} className="layout-topbar-logo">
                 <img
                     src={`${process.env.PUBLIC_URL}/images/logos/logoPavasStay.png`}
                     alt="Logo Pavas"

@@ -7,7 +7,7 @@ export const nameSystem = "Gestión, proveedores y anticipos";
 
 export const urlLogo = `${process.env.PUBLIC_URL}/images/logos/ponto.jpg`;
 
-export const ruta = process.env.NODE_ENV === "development" ? "" : "/ponto/";
+export const ruta = "";
 
 export const getInitials = (fullName) => {
     if (!fullName) return "";
@@ -17,13 +17,9 @@ export const getInitials = (fullName) => {
     return (first + second).toUpperCase();
 };
 
-export const urlSocket =
-    process.env.NODE_ENV === "development"
-        ? "http://localhost:3000/"
-        : "https://pavastecnologia.com/";
+export const urlSocket = "http://localhost/";
 
-export const pathSocket =
-    process.env.NODE_ENV === "development" ? "/socket.io/" : "/ponto/socket.io/";
+export const pathSocket = "/socket.io/";
 
 export const msnDatosObligatorios = "Hay información obligatoria por ingresar. Verificar";
 
@@ -46,10 +42,7 @@ export const daysOfWeek = [
     { label: "D", value: "sunday", id: 7 },
 ];
 
-export const urlbase =
-    process.env.NODE_ENV === "development"
-        ? "http://localhost:5037/"
-        : "https://pavastecnologia.com/ponto/";
+export const urlbase = "http://localhost/";
 
 export const estados = [
     { nombre: "Activo", id: 1 },

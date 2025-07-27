@@ -35,7 +35,17 @@ app.use(morgan("dev"));
 app.use(express.json({ limit: "50mb" })); // Parsear JSON en el cuerpo de las solicitudes
 app.use(express.urlencoded({ extended: true })); // Parsear datos codificados en URLs
 
-app.use(cors()); // Permite solicitudes desde otros dominios
+app.use(cors({
+  origin: [
+    "http://localhost",
+    "http://localhost:80",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://pavastecnologia.com"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+})); // Permite solicitudes desde otros dominios
 app.use(cookieParser()); // Manejo de cookies
 // app.use(helmetMiddleware); // Protección contra vulnerabilidades comunes
 app.use(compressionMiddleware); // Mejora el rendimiento comprimiendo las respuestas

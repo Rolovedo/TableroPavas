@@ -5,7 +5,7 @@ yarn-debug.log*
 yarn-error.log*
 
 # Archivos de build
-**/build
+# **/build  # Comentado temporalmente para permitir build del frontend
 **/dist
 
 # Archivos de desarrollo

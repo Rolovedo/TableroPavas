@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useContext } from "react";
 import { NavLink } from "react-router-dom";
 import { Ripple } from "primereact/ripple";
 import { Badge } from "primereact/badge";
 import { Link } from "react-router-dom";
+import { AuthContext } from "@context/auth/AuthContext";
 import "./styles/menu.css";
 
 const AppSubmenu = ({ items, className, onMenuItemClick }) => {
@@ -81,10 +82,12 @@ const AppSubmenu = ({ items, className, onMenuItemClick }) => {
 };
 
 export const AppMenu = (props) => {
+    const { idusuario } = useContext(AuthContext);
+    
     return (
         <div className="layout-menu-container">
             <div className="layout-logo-wrapper" style={{ marginBottom: "24px" }}>
-                <Link to="/" className="layout-sidebar-logo">
+                <Link to={idusuario ? "/dashboard" : "/"} className="layout-sidebar-logo">
                     {props.collapsed ? (
                         <span style={{ color: "white", fontSize: "24px", fontWeight: 200 }}>
                             MO

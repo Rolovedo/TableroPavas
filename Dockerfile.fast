@@ -1,0 +1,17 @@
+# Dockerfile optimizado - Usa build local precompilado
+FROM nginx:alpine
+
+# Remover la configuración default de nginx
+RUN rm -rf /usr/share/nginx/html/*
+
+# Copiar los archivos YA CONSTRUIDOS localmente
+COPY client/build /usr/share/nginx/html
+
+# Copiar configuración personalizada de nginx
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Exponer el puerto 80
+EXPOSE 80
+
+# Comando para iniciar nginx
+CMD ["nginx", "-g", "daemon off;"]
