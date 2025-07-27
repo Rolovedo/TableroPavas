@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "private": true,
     "proxy": "http://localhost:5000",
-    "homepage": "./",
+    "homepage": "/",
     "license": "MIT",
     "dependencies": {
         "@cyntler/react-doc-viewer": "^1.10.1",
