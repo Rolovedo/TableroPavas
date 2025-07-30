@@ -392,25 +392,27 @@ const TableroBoard = () => {
 
                 <Dialog
                     visible={showTaskDialog}
-                    style={{ width: '600px' }}
+                    style={{ width: '650px', maxWidth: '95vw' }}
                     header={editingTask ? 'Editar Tarea' : 'Nueva Tarea'}
                     modal
+                    className="kanban-task-dialog"
                     onHide={() => {
                         setShowTaskDialog(false);
                         setEditingTask(null);
                     }}
                 >
                     <div className="task-form">
+                        {/* Grupo: Información básica */}
                         <div className="p-field full-width">
-                            <label htmlFor="title">Título *</label>
+                            <label htmlFor="title">Título <span style={{color:'#dc3545'}}>*</span></label>
                             <InputText
                                 id="title"
                                 value={newTask.title}
                                 onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
                                 placeholder="Ingresa el título de la tarea"
+                                className={(!newTask.title ? 'p-invalid' : '')}
                             />
                         </div>
-
                         <div className="p-field full-width">
                             <label htmlFor="description">Descripción</label>
                             <InputTextarea
@@ -421,9 +423,9 @@ const TableroBoard = () => {
                                 placeholder="Describe la tarea"
                             />
                         </div>
-
+                        {/* Grupo: Asignación y planificación */}
                         <div className="p-field">
-                            <label htmlFor="assignee">Asignado a *</label>
+                            <label htmlFor="assignee">Asignado a <span style={{color:'#dc3545'}}>*</span></label>
                             <Dropdown
                                 id="assignee"
                                 value={newTask.assignee}
@@ -431,9 +433,9 @@ const TableroBoard = () => {
                                 onChange={(e) => setNewTask(prev => ({ ...prev, assignee: e.value }))}
                                 optionLabel="name"
                                 placeholder="Selecciona un desarrollador"
+                                className={(!newTask.assignee ? 'p-invalid' : '')}
                             />
                         </div>
-
                         <div className="p-field">
                             <label htmlFor="priority">Prioridad</label>
                             <Dropdown
@@ -445,7 +447,6 @@ const TableroBoard = () => {
                                 placeholder="Selecciona prioridad"
                             />
                         </div>
-
                         <div className="p-field">
                             <label htmlFor="category">Categoría</label>
                             <Dropdown
@@ -457,7 +458,6 @@ const TableroBoard = () => {
                                 placeholder="Selecciona categoría"
                             />
                         </div>
-
                         <div className="p-field">
                             <label htmlFor="estimatedHours">Horas Estimadas</label>
                             <InputText
@@ -466,9 +466,9 @@ const TableroBoard = () => {
                                 value={newTask.estimatedHours}
                                 onChange={(e) => setNewTask(prev => ({ ...prev, estimatedHours: parseInt(e.target.value) || 0 }))}
                                 placeholder="0"
+                                min={0}
                             />
                         </div>
-
                         <div className="p-field">
                             <label htmlFor="dueDate">Fecha de Vencimiento</label>
                             <Calendar
@@ -479,7 +479,6 @@ const TableroBoard = () => {
                                 dateFormat="dd/mm/yy"
                             />
                         </div>
-
                         <div className="p-field">
                             <label htmlFor="actualHours">Horas Reales</label>
                             <InputText
@@ -488,8 +487,10 @@ const TableroBoard = () => {
                                 value={newTask.actualHours}
                                 onChange={(e) => setNewTask(prev => ({ ...prev, actualHours: parseInt(e.target.value) || 0 }))}
                                 placeholder="0"
+                                min={0}
                             />
                         </div>
+                        {/* Grupo: Habilidades */}
                         <div className="p-field full-width">
                             <label htmlFor="requiredSkills">Habilidades Requeridas</label>
                             <InputText
@@ -501,6 +502,13 @@ const TableroBoard = () => {
                                 }}
                                 placeholder="Ej: React, Node, SQL"
                             />
+                            {newTask.requiredSkills.length > 0 && (
+                                <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                    {newTask.requiredSkills.map(skill => (
+                                        <Chip key={skill} label={skill} removable onRemove={() => setNewTask(prev => ({ ...prev, requiredSkills: prev.requiredSkills.filter(s => s !== skill) }))} />
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         <div className="form-buttons">
                             <Button 
