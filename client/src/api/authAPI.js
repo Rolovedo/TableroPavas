@@ -1,5 +1,5 @@
 // Configuración de URL por entorno
-const BASE_URL = process.env.REACT_APP_API_URL || 'https://tablero-pavas.vercel.app/api';
+const BASE_URL = process.env.REACT_APP_API_URL || 'https://tablero-pavas-git-desarrollo-acevedos-projects.vercel.app/api';
 
 console.log('🌐 BASE_URL configurada:', BASE_URL);
 console.log('🔍 Variables de entorno:', {
@@ -9,7 +9,7 @@ console.log('🔍 Variables de entorno:', {
 
 export const loginAPI = async (data) => {
     try {
-        const url = `${BASE_URL}/api/auth/login`;
+        const url = `${BASE_URL}/auth/login`;
         console.log('🔐 Intentando login en URL:', url);
         console.log('📊 Datos enviados:', { usuario: data.usuario, clave: '***' });
         
