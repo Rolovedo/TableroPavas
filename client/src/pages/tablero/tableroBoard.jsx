@@ -11,8 +11,9 @@ import { Avatar } from 'primereact/avatar';
 import { Chip } from 'primereact/chip';
 import { Toast } from 'primereact/toast';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import Layout from '@components/layout/Layout'; // ← IMPORTAR LAYOUT
+import Layout from '@components/layout/Layout';
 import authService from '../../services/auth.service';
+import tareasService from '../../services/tareas.service';
 import './tableroBoard.scss';
 
 const TableroBoard = () => {
@@ -27,15 +28,12 @@ const TableroBoard = () => {
         done: []
     });
 
-    const [developers] = useState([
-        { id: 1, name: 'Juan Pérez', email: 'juan@empresa.com', avatar: 'JP' },
-        { id: 2, name: 'María García', email: 'maria@empresa.com', avatar: 'MG' },
-        { id: 3, name: 'Carlos López', email: 'carlos@empresa.com', avatar: 'CL' }
-    ]);
+    const [developers, setDevelopers] = useState([]);
 
     const [showTaskDialog, setShowTaskDialog] = useState(false);
     const [editingTask, setEditingTask] = useState(null);
     const [selectedColumn, setSelectedColumn] = useState('backlog');
+    const [loading, setLoading] = useState(false);
 
     // Estados del formulario
     const [newTask, setNewTask] = useState({
@@ -50,9 +48,10 @@ const TableroBoard = () => {
 
     // Opciones para dropdowns
     const priorityOptions = [
-        { label: 'Alta', value: 'high', color: '#e74c3c' },
-        { label: 'Media', value: 'medium', color: '#f39c12' },
-        { label: 'Baja', value: 'low', color: '#27ae60' }
+        { label: 'Baja', value: 'low', color: '#28a745' },
+        { label: 'Media', value: 'medium', color: '#17a2b8' },
+        { label: 'Alta', value: 'high', color: '#ffc107' },
+        { label: 'Muy Alta', value: 'very-high', color: '#dc3545' }
     ];
 
     const categoryOptions = [
@@ -70,69 +69,52 @@ const TableroBoard = () => {
         }
     };
 
-    // Cargar tareas (simuladas para desarrollo)
+    // Cargar tareas desde la base de datos
     const loadTasks = useCallback(async () => {
         try {
-            console.log('📡 Cargando tareas simuladas...');
+            setLoading(true);
+            console.log('📡 Cargando tareas desde base de datos...');
             
+            const tareasPorEstado = await tareasService.obtenerTareas();
+            setTasks(tareasPorEstado);
+            
+            console.log('✅ Tareas cargadas exitosamente');
+            
+        } catch (error) {
+            console.error('Error cargando tareas:', error);
+            showToastMessage('error', 'Error', 'No se pudieron cargar las tareas desde la base de datos');
+            
+            // Fallback a tareas simuladas si hay error de conexión
             const mockTasks = {
                 backlog: [
                     {
-                        id: 1,
+                        id: 'mock-1',
                         title: 'Configurar autenticación JWT',
                         description: 'Implementar sistema de autenticación con tokens JWT',
-                        assignee: developers[0],
+                        assignee: developers[0] || { id: 1, name: 'Juan Pérez', avatar: 'JP' },
                         priority: 'high',
                         dueDate: new Date('2024-02-15'),
                         category: 'backend',
                         estimatedHours: 8,
                         createdBy: 'Admin',
                         createdAt: new Date()
-                    },
-                    {
-                        id: 2,
-                        title: 'Diseñar interfaz del tablero',
-                        description: 'Crear mockups y prototipos de la interfaz del tablero Kanban',
-                        assignee: developers[1],
-                        priority: 'medium',
-                        dueDate: new Date('2024-02-20'),
-                        category: 'frontend',
-                        estimatedHours: 12,
-                        createdBy: 'Admin',
-                        createdAt: new Date()
                     }
                 ],
-                todo: [
-                    {
-                        id: 3,
-                        title: 'Conectar con base de datos',
-                        description: 'Establecer conexión con MySQL y crear modelos',
-                        assignee: developers[2],
-                        priority: 'high',
-                        dueDate: new Date('2024-02-10'),
-                        category: 'database',
-                        estimatedHours: 6,
-                        createdBy: 'Admin',
-                        createdAt: new Date()
-                    }
-                ],
+                todo: [],
                 inProgress: [],
                 review: [],
                 done: []
             };
-
             setTasks(mockTasks);
-            console.log('✅ Tareas simuladas cargadas');
-            
-        } catch (error) {
-            console.error('Error cargando tareas:', error);
-            showToastMessage('error', 'Error', 'No se pudieron cargar las tareas');
+        } finally {
+            setLoading(false);
         }
     }, [developers]);
 
-    // Crear nueva tarea
+    // Crear nueva tarea en la base de datos
     const createTask = async () => {
         try {
+            setLoading(true);
             console.log('🔍 Creando nueva tarea...');
             
             if (!newTask.title || !newTask.assignee) {
@@ -141,23 +123,36 @@ const TableroBoard = () => {
             }
 
             const taskToCreate = {
-                id: Date.now(),
                 title: newTask.title,
                 description: newTask.description,
                 assignee: newTask.assignee,
                 priority: newTask.priority?.value || 'medium',
-                dueDate: newTask.dueDate,
+                status: selectedColumn,
                 category: newTask.category?.value,
+                dueDate: newTask.dueDate,
                 estimatedHours: newTask.estimatedHours || 0,
-                createdBy: authService.getTableroUser()?.nombre || 'Usuario',
-                createdAt: new Date()
+                requiredSkills: []
             };
 
+            // Crear en la base de datos
+            const tareaCreada = await tareasService.crearTarea(taskToCreate);
+            
+            // Agregar la tarea creada al estado local
             setTasks(prevTasks => ({
                 ...prevTasks,
-                [selectedColumn]: [...prevTasks[selectedColumn], taskToCreate]
+                [selectedColumn]: [...prevTasks[selectedColumn], {
+                    ...tareaCreada,
+                    assignee: newTask.assignee,
+                    priority: newTask.priority?.value || 'medium',
+                    category: newTask.category?.value,
+                    dueDate: newTask.dueDate,
+                    estimatedHours: newTask.estimatedHours || 0,
+                    createdBy: authService.getTableroUser()?.nombre || 'Usuario',
+                    createdAt: new Date()
+                }]
             }));
 
+            // Limpiar formulario
             setNewTask({
                 title: '',
                 description: '',
@@ -169,18 +164,20 @@ const TableroBoard = () => {
             });
 
             setShowTaskDialog(false);
-            showToastMessage('success', 'Tarea Creada', 'La tarea se ha creado exitosamente');
+            showToastMessage('success', 'Tarea Creada', 'La tarea se ha creado exitosamente en la base de datos');
             
-            console.log('✅ Tarea creada exitosamente:', taskToCreate);
+            console.log('✅ Tarea creada exitosamente:', tareaCreada);
 
         } catch (error) {
             console.error('Error creando tarea:', error);
-            showToastMessage('error', 'Error', 'No se pudo crear la tarea');
+            showToastMessage('error', 'Error', 'No se pudo crear la tarea en la base de datos');
+        } finally {
+            setLoading(false);
         }
     };
 
-    // Manejar drag and drop
-    const onDragEnd = (result) => {
+    // Manejar drag and drop con actualización en base de datos
+    const onDragEnd = async (result) => {
         const { destination, source, draggableId } = result;
 
         if (!destination) return;
@@ -193,6 +190,7 @@ const TableroBoard = () => {
         const finish = tasks[destination.droppableId];
 
         if (start === finish) {
+            // Mover dentro de la misma columna
             const newTaskIds = Array.from(start);
             const task = newTaskIds.find(t => t.id.toString() === draggableId);
             newTaskIds.splice(source.index, 1);
@@ -203,6 +201,7 @@ const TableroBoard = () => {
                 [source.droppableId]: newTaskIds
             }));
         } else {
+            // Mover entre columnas diferentes
             const startTaskIds = Array.from(start);
             const task = startTaskIds.find(t => t.id.toString() === draggableId);
             startTaskIds.splice(source.index, 1);
@@ -210,15 +209,52 @@ const TableroBoard = () => {
             const finishTaskIds = Array.from(finish);
             finishTaskIds.splice(destination.index, 0, task);
 
+            // Actualizar estado local inmediatamente
             setTasks(prev => ({
                 ...prev,
                 [source.droppableId]: startTaskIds,
                 [destination.droppableId]: finishTaskIds
             }));
 
-            showToastMessage('success', 'Tarea Movida', `Tarea movida a ${destination.droppableId}`);
+            // Actualizar en la base de datos
+            try {
+                await tareasService.actualizarTarea(task.id, {
+                    status: destination.droppableId
+                });
+
+                showToastMessage('success', 'Tarea Movida', `Tarea movida a ${destination.droppableId}`);
+                console.log(`✅ Tarea ${task.id} movida a ${destination.droppableId} en la BD`);
+            } catch (error) {
+                console.error('Error actualizando tarea en BD:', error);
+                // Revertir el cambio local si falla la actualización en BD
+                setTasks(prev => ({
+                    ...prev,
+                    [source.droppableId]: [...prev[source.droppableId], task],
+                    [destination.droppableId]: prev[destination.droppableId].filter(t => t.id !== task.id)
+                }));
+                showToastMessage('error', 'Error', 'No se pudo actualizar la tarea en la base de datos');
+            }
         }
     };
+
+    // Cargar desarrolladores desde la base de datos
+    const loadDevelopers = useCallback(async () => {
+        try {
+            console.log('👥 Cargando desarrolladores desde base de datos...');
+            const desarrolladores = await tareasService.obtenerDesarrolladores();
+            setDevelopers(desarrolladores);
+            console.log('✅ Desarrolladores cargados:', desarrolladores.length);
+        } catch (error) {
+            console.error('Error cargando desarrolladores:', error);
+            // Fallback a desarrolladores simulados
+            const mockDevelopers = [
+                { id: 1, name: 'Juan Pérez', email: 'juan@empresa.com', avatar: 'JP' },
+                { id: 2, name: 'María García', email: 'maria@empresa.com', avatar: 'MG' },
+                { id: 3, name: 'Carlos López', email: 'carlos@empresa.com', avatar: 'CL' }
+            ];
+            setDevelopers(mockDevelopers);
+        }
+    }, []);
 
     useEffect(() => {
         console.log("🎯 TABLERO KANBAN CARGADO EXITOSAMENTE!");
@@ -229,8 +265,16 @@ const TableroBoard = () => {
             }
         }
         
-        loadTasks();
-    }, [loadTasks]);
+        // Cargar desarrolladores primero, luego tareas
+        loadDevelopers();
+    }, [loadDevelopers]);
+
+    useEffect(() => {
+        // Cargar tareas cuando los desarrolladores estén listos
+        if (developers.length > 0) {
+            loadTasks();
+        }
+    }, [developers, loadTasks]);
 
     const columns = [
         { id: 'backlog', title: 'Backlog', color: '#6c757d' },
@@ -436,6 +480,7 @@ const TableroBoard = () => {
                             <Button 
                                 label={editingTask ? 'Actualizar' : 'Crear Tarea'} 
                                 className="p-button-success"
+                                loading={loading}
                                 onClick={createTask}
                             />
                         </div>

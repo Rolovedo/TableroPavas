@@ -692,14 +692,14 @@ app.get("/api/app/get_menu", (req, res) => {
       padre: 3,
       label: "Usuarios",
       icon: "pi pi-fw pi-users",
-      toa: "usuarios"
+      //toa: "usuarios"
     },
     {
       id: 32,
       padre: 3,
       label: "Permisos",
       icon: "pi pi-fw pi-lock",
-      toa: "permisos"
+      //toa: "permisos"
     }
   ];
   
@@ -745,13 +745,13 @@ app.get("/api/app/get_menu", (req, res) => {
             id: 31,
             label: "Usuarios",
             icon: "pi pi-fw pi-users",
-            to: "/usuarios"
+            //to: "/usuarios"
           },
           {
             id: 32,
             label: "Permisos",
             icon: "pi pi-fw pi-lock",
-            to: "/permisos"
+            //to: "/permisos"
           }
         ]
       }
@@ -829,6 +829,557 @@ app.post("/api/app/verify_token", (req, res) => {
   });
 });
 
+// ==================== ENDPOINTS DE TAREAS ====================
+
+// Obtener todas las tareas del tablero
+app.get("/api/tablero/tareas", async (req, res) => {
+  try {
+    console.log('📋 Obteniendo tareas del tablero...');
+    
+    const client = await pool.connect();
+    
+    try {
+      // Usar la vista que ya tiene joins con usuarios
+      const query = `
+        SELECT 
+          t.id,
+          t.titulo,
+          t.descripcion,
+          t.prioridad,
+          t.estado,
+          t.categoria,
+          t.fecha_vencimiento,
+          t.horas_estimadas,
+          t.horas_reales,
+          t.progreso,
+          t.habilidades_requeridas,
+          t.fecha_creacion,
+          t.fecha_actualizacion,
+          -- Datos del asignado
+          t.asignado_a as asignado_id,
+          u_asignado.usu_nombre as asignado_nombre,
+          u_asignado.usu_apellido as asignado_apellido,
+          u_asignado.usu_correo as asignado_email,
+          d.avatar as asignado_avatar,
+          -- Datos del creador
+          t.creado_por,
+          u_creador.usu_nombre as creador_nombre,
+          u_creador.usu_apellido as creador_apellido
+        FROM tablero_tareas t
+        LEFT JOIN tbl_usuarios u_asignado ON t.asignado_a = u_asignado.usu_id
+        LEFT JOIN tablero_desarrolladores d ON u_asignado.usu_id = d.usuario_id
+        LEFT JOIN tbl_usuarios u_creador ON t.creado_por = u_creador.usu_id
+        ORDER BY t.fecha_creacion DESC
+      `;
+      
+      const result = await client.query(query);
+      
+      // Formatear las tareas para el frontend
+      const tareas = result.rows.map(row => ({
+        id: row.id,
+        title: row.titulo,
+        description: row.descripcion,
+        priority: row.prioridad,
+        status: row.estado,
+        category: row.categoria,
+        dueDate: row.fecha_vencimiento,
+        estimatedHours: row.horas_estimadas,
+        actualHours: row.horas_reales,
+        progress: row.progreso,
+        requiredSkills: row.habilidades_requeridas ? JSON.parse(row.habilidades_requeridas) : [],
+        createdAt: row.fecha_creacion,
+        updatedAt: row.fecha_actualizacion,
+        assignee: row.asignado_id ? {
+          id: row.asignado_id,
+          name: `${row.asignado_nombre} ${row.asignado_apellido}`.trim(),
+          email: row.asignado_email,
+          avatar: row.asignado_avatar || row.asignado_nombre?.substring(0, 2).toUpperCase()
+        } : null,
+        createdBy: `${row.creador_nombre} ${row.creador_apellido}`.trim()
+      }));
+      
+      console.log(`✅ ${tareas.length} tareas encontradas`);
+      
+      res.json({
+        success: true,
+        tareas: tareas,
+        total: tareas.length
+      });
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo tareas:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener las tareas",
+      error: error.message
+    });
+  }
+});
+
+// Crear nueva tarea
+app.post("/api/tablero/tareas", async (req, res) => {
+  try {
+    console.log('📝 Creando nueva tarea:', req.body);
+    
+    const {
+      titulo,
+      descripcion,
+      asignado_a,
+      prioridad,
+      estado,
+      categoria,
+      fecha_vencimiento,
+      horas_estimadas,
+      habilidades_requeridas,
+      creado_por
+    } = req.body;
+    
+    // Validaciones básicas
+    if (!titulo || !creado_por) {
+      return res.status(400).json({
+        success: false,
+        message: "Título y creado_por son requeridos"
+      });
+    }
+    
+    const client = await pool.connect();
+    
+    try {
+      const query = `
+        INSERT INTO tablero_tareas (
+          titulo, descripcion, asignado_a, prioridad, estado, categoria,
+          fecha_vencimiento, horas_estimadas, habilidades_requeridas, creado_por
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING *
+      `;
+      
+      const values = [
+        titulo,
+        descripcion,
+        asignado_a,
+        prioridad || 'media',
+        estado || 'pendiente',
+        categoria,
+        fecha_vencimiento,
+        horas_estimadas || 0,
+        habilidades_requeridas ? JSON.stringify(habilidades_requeridas) : null,
+        creado_por
+      ];
+      
+      const result = await client.query(query, values);
+      const nuevaTarea = result.rows[0];
+      
+      console.log('✅ Tarea creada:', nuevaTarea.id);
+      
+      res.json({
+        success: true,
+        message: "Tarea creada exitosamente",
+        tarea: {
+          id: nuevaTarea.id,
+          title: nuevaTarea.titulo,
+          description: nuevaTarea.descripcion,
+          priority: nuevaTarea.prioridad,
+          status: nuevaTarea.estado,
+          category: nuevaTarea.categoria,
+          dueDate: nuevaTarea.fecha_vencimiento,
+          estimatedHours: nuevaTarea.horas_estimadas,
+          createdAt: nuevaTarea.fecha_creacion
+        }
+      });
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('❌ Error creando tarea:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error al crear la tarea",
+      error: error.message
+    });
+  }
+});
+
+// Actualizar tarea (incluyendo cambio de estado por drag & drop)
+app.put("/api/tablero/tareas/:id", async (req, res) => {
+  try {
+    const tareaId = req.params.id;
+    console.log(`📝 Actualizando tarea ${tareaId}:`, req.body);
+    
+    const {
+      titulo,
+      descripcion,
+      asignado_a,
+      prioridad,
+      estado,
+      categoria,
+      fecha_vencimiento,
+      horas_estimadas,
+      horas_reales,
+      progreso,
+      habilidades_requeridas,
+      actualizado_por
+    } = req.body;
+    
+    const client = await pool.connect();
+    
+    try {
+      // Construir query dinámicamente solo con campos que se van a actualizar
+      const updates = [];
+      const values = [];
+      let valueIndex = 1;
+      
+      if (titulo !== undefined) {
+        updates.push(`titulo = $${valueIndex++}`);
+        values.push(titulo);
+      }
+      if (descripcion !== undefined) {
+        updates.push(`descripcion = $${valueIndex++}`);
+        values.push(descripcion);
+      }
+      if (asignado_a !== undefined) {
+        updates.push(`asignado_a = $${valueIndex++}`);
+        values.push(asignado_a);
+      }
+      if (prioridad !== undefined) {
+        updates.push(`prioridad = $${valueIndex++}`);
+        values.push(prioridad);
+      }
+      if (estado !== undefined) {
+        updates.push(`estado = $${valueIndex++}`);
+        values.push(estado);
+      }
+      if (categoria !== undefined) {
+        updates.push(`categoria = $${valueIndex++}`);
+        values.push(categoria);
+      }
+      if (fecha_vencimiento !== undefined) {
+        updates.push(`fecha_vencimiento = $${valueIndex++}`);
+        values.push(fecha_vencimiento);
+      }
+      if (horas_estimadas !== undefined) {
+        updates.push(`horas_estimadas = $${valueIndex++}`);
+        values.push(horas_estimadas);
+      }
+      if (horas_reales !== undefined) {
+        updates.push(`horas_reales = $${valueIndex++}`);
+        values.push(horas_reales);
+      }
+      if (progreso !== undefined) {
+        updates.push(`progreso = $${valueIndex++}`);
+        values.push(progreso);
+      }
+      if (habilidades_requeridas !== undefined) {
+        updates.push(`habilidades_requeridas = $${valueIndex++}`);
+        values.push(habilidades_requeridas ? JSON.stringify(habilidades_requeridas) : null);
+      }
+      if (actualizado_por !== undefined) {
+        updates.push(`actualizado_por = $${valueIndex++}`);
+        values.push(actualizado_por);
+      }
+      
+      // Siempre actualizar fecha_actualizacion
+      updates.push(`fecha_actualizacion = NOW()`);
+      
+      // Agregar el ID al final
+      values.push(tareaId);
+      
+      const query = `
+        UPDATE tablero_tareas 
+        SET ${updates.join(', ')}
+        WHERE id = $${valueIndex}
+        RETURNING *
+      `;
+      
+      const result = await client.query(query, values);
+      
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Tarea no encontrada"
+        });
+      }
+      
+      const tareaActualizada = result.rows[0];
+      
+      console.log('✅ Tarea actualizada:', tareaId);
+      
+      res.json({
+        success: true,
+        message: "Tarea actualizada exitosamente",
+        tarea: {
+          id: tareaActualizada.id,
+          title: tareaActualizada.titulo,
+          description: tareaActualizada.descripcion,
+          priority: tareaActualizada.prioridad,
+          status: tareaActualizada.estado,
+          category: tareaActualizada.categoria,
+          dueDate: tareaActualizada.fecha_vencimiento,
+          estimatedHours: tareaActualizada.horas_estimadas,
+          actualHours: tareaActualizada.horas_reales,
+          progress: tareaActualizada.progreso,
+          updatedAt: tareaActualizada.fecha_actualizacion
+        }
+      });
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('❌ Error actualizando tarea:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error al actualizar la tarea",
+      error: error.message
+    });
+  }
+});
+
+// Obtener desarrolladores disponibles
+app.get("/api/tablero/desarrolladores", async (req, res) => {
+  try {
+    console.log('👥 Obteniendo desarrolladores...');
+    
+    const client = await pool.connect();
+    
+    try {
+      const query = `
+        SELECT 
+          d.id,
+          d.usuario_id,
+          u.usu_nombre,
+          u.usu_apellido,
+          u.usu_correo,
+          d.rol,
+          d.nivel,
+          d.habilidades,
+          d.capacidad_maxima,
+          d.calificacion_eficiencia,
+          d.esta_activo,
+          d.avatar,
+          d.telefono
+        FROM tablero_desarrolladores d
+        JOIN tbl_usuarios u ON d.usuario_id = u.usu_id
+        WHERE d.esta_activo = true
+        ORDER BY u.usu_nombre
+      `;
+      
+      const result = await client.query(query);
+      
+      const desarrolladores = result.rows.map(row => ({
+        id: row.usuario_id,
+        name: `${row.usu_nombre} ${row.usu_apellido}`.trim(),
+        email: row.usu_correo,
+        avatar: row.avatar || row.usu_nombre?.substring(0, 2).toUpperCase(),
+        role: row.rol,
+        level: row.nivel,
+        skills: row.habilidades ? JSON.parse(row.habilidades) : [],
+        maxCapacity: row.capacidad_maxima,
+        efficiency: row.calificacion_eficiencia,
+        active: row.esta_activo,
+        phone: row.telefono
+      }));
+      
+      console.log(`✅ ${desarrolladores.length} desarrolladores encontrados`);
+      
+      res.json({
+        success: true,
+        desarrolladores: desarrolladores
+      });
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('❌ Error obteniendo desarrolladores:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error al obtener desarrolladores",
+      error: error.message
+    });
+  }
+});
+
+// Endpoint para crear datos de prueba
+app.post("/api/tablero/seed-data", async (req, res) => {
+  try {
+    console.log('🌱 Creando datos de prueba...');
+    
+    const client = await pool.connect();
+    
+    try {
+      // Verificar si ya existen desarrolladores
+      const existingDevs = await client.query('SELECT COUNT(*) FROM tablero_desarrolladores');
+      
+      if (existingDevs.rows[0].count > 0) {
+        return res.json({
+          success: true,
+          message: "Los datos de prueba ya existen",
+          skipped: true
+        });
+      }
+
+      // Crear usuarios de prueba si no existen
+      const usuarios = [
+        { nombre: 'Juan', apellido: 'Pérez', email: 'juan.perez@tablero.com', usuario: 'jperez', password: 'dev123' },
+        { nombre: 'María', apellido: 'García', email: 'maria.garcia@tablero.com', usuario: 'mgarcia', password: 'dev123' },
+        { nombre: 'Carlos', apellido: 'López', email: 'carlos.lopez@tablero.com', usuario: 'clopez', password: 'dev123' },
+        { nombre: 'Ana', apellido: 'Rodríguez', email: 'ana.rodriguez@tablero.com', usuario: 'arodriguez', password: 'dev123' }
+      ];
+
+      const usuariosCreados = [];
+      
+      for (const usuario of usuarios) {
+        // Verificar si el usuario ya existe
+        const existingUser = await client.query(
+          'SELECT usu_id FROM tbl_usuarios WHERE usu_correo = $1',
+          [usuario.email]
+        );
+        
+        if (existingUser.rows.length === 0) {
+          const userResult = await client.query(`
+            INSERT INTO tbl_usuarios (
+              usu_nombre, usu_apellido, usu_correo, usu_usuario, usu_password, 
+              est_id, prf_id, fecha_creacion
+            ) VALUES ($1, $2, $3, $4, $5, 1, 4, NOW())
+            RETURNING usu_id
+          `, [usuario.nombre, usuario.apellido, usuario.email, usuario.usuario, usuario.password]);
+          
+          usuariosCreados.push({
+            id: userResult.rows[0].usu_id,
+            ...usuario
+          });
+        } else {
+          usuariosCreados.push({
+            id: existingUser.rows[0].usu_id,
+            ...usuario
+          });
+        }
+      }
+
+      // Crear desarrolladores
+      const desarrolladores = [
+        {
+          usuario_id: usuariosCreados[0].id,
+          rol: 'backend',
+          nivel: 'senior',
+          habilidades: JSON.stringify(['JavaScript', 'Node.js', 'PostgreSQL', 'Express']),
+          avatar: 'JP',
+          telefono: '+57300123456'
+        },
+        {
+          usuario_id: usuariosCreados[1].id,
+          rol: 'frontend',
+          nivel: 'semi-senior',
+          habilidades: JSON.stringify(['React', 'TypeScript', 'CSS', 'HTML']),
+          avatar: 'MG',
+          telefono: '+57301234567'
+        },
+        {
+          usuario_id: usuariosCreados[2].id,
+          rol: 'fullstack',
+          nivel: 'senior',
+          habilidades: JSON.stringify(['React', 'Node.js', 'MongoDB', 'Docker']),
+          avatar: 'CL',
+          telefono: '+57302345678'
+        },
+        {
+          usuario_id: usuariosCreados[3].id,
+          rol: 'devops',
+          nivel: 'senior',
+          habilidades: JSON.stringify(['AWS', 'Docker', 'Kubernetes', 'CI/CD']),
+          avatar: 'AR',
+          telefono: '+57303456789'
+        }
+      ];
+
+      for (const dev of desarrolladores) {
+        await client.query(`
+          INSERT INTO tablero_desarrolladores (
+            usuario_id, rol, nivel, habilidades, avatar, telefono, esta_activo
+          ) VALUES ($1, $2, $3, $4, $5, $6, true)
+        `, [dev.usuario_id, dev.rol, dev.nivel, dev.habilidades, dev.avatar, dev.telefono]);
+      }
+
+      // Crear algunas tareas de ejemplo
+      const tareasEjemplo = [
+        {
+          titulo: 'Configurar autenticación JWT',
+          descripcion: 'Implementar sistema de autenticación con tokens JWT',
+          asignado_a: usuariosCreados[0].id,
+          prioridad: 'alta',
+          estado: 'pendiente',
+          categoria: 'backend',
+          horas_estimadas: 8,
+          creado_por: 1
+        },
+        {
+          titulo: 'Diseñar interfaz del tablero',
+          descripcion: 'Crear mockups y prototipos de la interfaz del tablero Kanban',
+          asignado_a: usuariosCreados[1].id,
+          prioridad: 'media',
+          estado: 'por-hacer',
+          categoria: 'frontend',
+          horas_estimadas: 12,
+          creado_por: 1
+        },
+        {
+          titulo: 'Configurar CI/CD pipeline',
+          descripcion: 'Implementar pipeline automatizado para despliegues',
+          asignado_a: usuariosCreados[3].id,
+          prioridad: 'alta',
+          estado: 'en-progreso',
+          categoria: 'devops',
+          horas_estimadas: 16,
+          creado_por: 1
+        }
+      ];
+
+      for (const tarea of tareasEjemplo) {
+        await client.query(`
+          INSERT INTO tablero_tareas (
+            titulo, descripcion, asignado_a, prioridad, estado, categoria,
+            horas_estimadas, creado_por
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        `, [
+          tarea.titulo, tarea.descripcion, tarea.asignado_a, tarea.prioridad,
+          tarea.estado, tarea.categoria, tarea.horas_estimadas, tarea.creado_por
+        ]);
+      }
+
+      console.log('✅ Datos de prueba creados exitosamente');
+      
+      res.json({
+        success: true,
+        message: "Datos de prueba creados exitosamente",
+        created: {
+          usuarios: usuariosCreados.length,
+          desarrolladores: desarrolladores.length,
+          tareas: tareasEjemplo.length
+        }
+      });
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('❌ Error creando datos de prueba:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error al crear datos de prueba",
+      error: error.message
+    });
+  }
+});
+
 // Catch all para debug
 app.all("*", (req, res) => {
   res.status(404).json({
@@ -847,7 +1398,12 @@ app.all("*", (req, res) => {
       "GET /api/app/get_menu",
       "GET /api/app/get_permissions_user",
       "GET /api/app/verify_token",
-      "POST /api/app/verify_token"
+      "POST /api/app/verify_token",
+      "GET /api/tablero/tareas",
+      "POST /api/tablero/tareas",
+      "PUT /api/tablero/tareas/:id",
+      "GET /api/tablero/desarrolladores",
+      "POST /api/tablero/seed-data"
     ]
   });
 });
