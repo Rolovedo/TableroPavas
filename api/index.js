@@ -70,6 +70,28 @@ app.get("/api", (req, res) => {
   });
 });
 
+// Diagnóstico de variables de entorno
+app.get("/api/debug", (req, res) => {
+  res.json({
+    message: "Debug de configuración",
+    timestamp: new Date().toISOString(),
+    env: {
+      NODE_ENV: process.env.NODE_ENV,
+      DB_HOST: process.env.DB_HOST ? '***' : 'NO_CONFIGURADO',
+      DB_USER: process.env.DB_USER ? '***' : 'NO_CONFIGURADO', 
+      DB_PASSWORD: process.env.DB_PASSWORD ? '***' : 'NO_CONFIGURADO',
+      DB_NAME: process.env.DB_NAME ? '***' : 'NO_CONFIGURADO',
+      DB_PORT: process.env.DB_PORT || 'NO_CONFIGURADO'
+    },
+    hardcoded_values: {
+      host: 'db.eukvsggruwdokftylssc.supabase.co',
+      port: 5432,
+      user: 'postgres', 
+      database: 'postgres'
+    }
+  });
+});
+
 // Debug middleware para ver qué rutas llegan
 app.use((req, res, next) => {
   console.log(`${req.method} ${req.url} - Path: ${req.path}`);
@@ -218,12 +240,19 @@ app.post("/api/test-login", (req, res) => {
 
 // Login endpoint con prefijo /api - AUTENTICACIÓN CON BASE DE DATOS
 app.post("/api/auth/login", async (req, res) => {
+  console.log('🚀 === INICIO LOGIN API ===');
+  console.log('📨 Request body:', req.body);
+  console.log('📨 Request headers:', req.headers);
+  
   try {
     const { email, password, usuario, clave } = req.body;
     
     // Aceptar tanto email/password como usuario/clave
     const userEmail = email || usuario;
     const userPassword = password || clave;
+    
+    console.log('📧 User email:', userEmail);
+    console.log('🔑 User password received:', !!userPassword);
     
     if (!userEmail || !userPassword) {
       return res.status(400).json({
@@ -235,10 +264,13 @@ app.post("/api/auth/login", async (req, res) => {
     console.log('🔐 Intentando autenticación para:', userEmail);
 
     // Conectar a la base de datos
+    console.log('🔌 Intentando conectar a la base de datos...');
     const client = await pool.connect();
+    console.log('✅ Conexión a BD exitosa');
     
     try {
       // Buscar usuario en la base de datos por email o usuario
+      console.log('🔍 Buscando usuario en la BD...');
       const userQuery = await client.query(`
         SELECT u.*, p.prf_nombre 
         FROM tbl_usuarios u
@@ -247,6 +279,8 @@ app.post("/api/auth/login", async (req, res) => {
         AND u.est_id = 1
         LIMIT 1
       `, [userEmail]);
+      
+      console.log('📊 Resultados de búsqueda:', userQuery.rows.length);
 
       if (userQuery.rows.length === 0) {
         console.log('❌ Usuario no encontrado:', userEmail);
@@ -314,11 +348,22 @@ app.post("/api/auth/login", async (req, res) => {
     }
 
   } catch (error) {
-    console.error('❌ Error en login:', error);
+    console.error('❌ ERROR CRÍTICO EN LOGIN:', error);
+    console.error('📋 Detalles del error:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    console.error('🚨 === FIN ERROR LOGIN ===');
+    
     res.status(500).json({
       success: false,
       message: "Error interno del servidor",
-      error: error.message
+      error: error.message,
+      debug: {
+        name: error.name,
+        timestamp: new Date().toISOString()
+      }
     });
   }
 });
