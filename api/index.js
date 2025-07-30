@@ -59,11 +59,13 @@ app.get("/", (req, res) => {
 // Endpoint raíz API también
 app.get("/api", (req, res) => {
   res.json({ 
-    message: "API funcionando correctamente desde /api", 
+    message: "API funcionando correctamente desde /api - RAMA DESARROLLO", 
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV,
     url: req.url,
-    path: req.path
+    path: req.path,
+    branch: "desarrollo",
+    version: "v1.1-dev"
   });
 });
 
