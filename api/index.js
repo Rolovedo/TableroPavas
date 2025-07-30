@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import pkg from 'pg';
+import bcrypt from 'bcrypt';
 
 const { Pool } = pkg;
 dotenv.config();
@@ -258,9 +259,6 @@ app.post("/api/auth/login", async (req, res) => {
       const dbUser = userQuery.rows[0];
       console.log('👤 Usuario encontrado:', dbUser.usu_nombre);
 
-      // Importar bcrypt para verificar contraseñas hasheadas
-      const bcrypt = await import('bcrypt');
-      
       // Verificar contraseña
       let passwordMatch = false;
       
