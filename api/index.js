@@ -13,9 +13,21 @@ const app = express();
 // Configuración PostgreSQL - Múltiples estrategias para máxima compatibilidad
 console.log('🔧 Configurando conexiones a BD...');
 console.log('🔍 DATABASE_URL disponible:', !!process.env.DATABASE_URL);
+console.log('🔍 DATABASE_POOLER_URL disponible:', !!process.env.DATABASE_POOLER_URL);
 console.log('🔍 DB_HOST disponible:', !!process.env.DB_HOST);
 
-// 1. Pool principal con DATABASE_URL (prioridad)
+// 1. Pool con POOLER (máxima prioridad para Vercel)
+const poolPooler = new Pool({
+    connectionString: process.env.DATABASE_POOLER_URL,
+    ssl: {
+        rejectUnauthorized: false
+    },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 8000,
+});
+
+// 2. Pool principal con DATABASE_URL
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || '98631063ace'}@${process.env.DB_HOST || 'db.eukvsggruwdokftylssc.supabase.co'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'postgres'}`,
     ssl: {
@@ -26,7 +38,7 @@ const pool = new Pool({
     connectionTimeoutMillis: 10000,
 });
 
-// 2. Pool con variables individuales (fallback)
+// 3. Pool con variables individuales (fallback)
 const poolAlt = new Pool({
     host: process.env.DB_HOST || 'db.eukvsggruwdokftylssc.supabase.co',
     port: process.env.DB_PORT || 5432,
@@ -41,7 +53,7 @@ const poolAlt = new Pool({
     connectionTimeoutMillis: 10000,
 });
 
-// 3. Pool con connection string hardcoded (último recurso)
+// 4. Pool con connection string hardcoded (último recurso)
 const poolDirect = new Pool({
     connectionString: 'postgresql://postgres:98631063ace@db.eukvsggruwdokftylssc.supabase.co:5432/postgres',
     ssl: {
@@ -104,6 +116,7 @@ app.get("/api/debug", (req, res) => {
     timestamp: new Date().toISOString(),
     env: {
       NODE_ENV: process.env.NODE_ENV,
+      DATABASE_POOLER_URL: process.env.DATABASE_POOLER_URL ? 'CONFIGURADA (' + process.env.DATABASE_POOLER_URL.substring(0, 30) + '...)' : 'NO_CONFIGURADA',
       DATABASE_URL: process.env.DATABASE_URL ? 'CONFIGURADA (' + process.env.DATABASE_URL.substring(0, 30) + '...)' : 'NO_CONFIGURADA',
       DB_HOST: process.env.DB_HOST || 'NO_CONFIGURADO',
       DB_USER: process.env.DB_USER || 'NO_CONFIGURADO', 
@@ -118,6 +131,7 @@ app.get("/api/debug", (req, res) => {
       database: 'postgres'
     },
     connection_strings: {
+      pooler: process.env.DATABASE_POOLER_URL || 'NO DISPONIBLE',
       from_env: process.env.DATABASE_URL || 'NO DISPONIBLE',
       constructed: `postgresql://${process.env.DB_USER || 'postgres'}:***@${process.env.DB_HOST || 'db.eukvsggruwdokftylssc.supabase.co'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'postgres'}`,
       hardcoded: 'postgresql://postgres:***@db.eukvsggruwdokftylssc.supabase.co:5432/postgres'
@@ -181,6 +195,7 @@ app.get("/api/test-direct", async (req, res) => {
 app.get("/api/test-db-complete", async (req, res) => {
   try {
     console.log('🔌 Iniciando test completo de BD...');
+    console.log('🔍 DATABASE_POOLER_URL env:', !!process.env.DATABASE_POOLER_URL ? 'CONFIGURADA' : 'NO CONFIGURADA');
     console.log('🔍 DATABASE_URL env:', !!process.env.DATABASE_URL ? 'CONFIGURADA' : 'NO CONFIGURADA');
     console.log('🔍 Variables individuales:', {
       DB_HOST: !!process.env.DB_HOST,
@@ -194,39 +209,55 @@ app.get("/api/test-db-complete", async (req, res) => {
     let connection_type = "no_connection";
     let lastError = null;
     
-    // Método 1: DATABASE_URL (la nueva variable que agregamos)
-    try {
-      console.log('🔗 Intentando con DATABASE_URL...');
-      client = await pool.connect();
-      connection_type = "database_url";
-      console.log('✅ Conexión con DATABASE_URL exitosa');
-    } catch (databaseUrlError) {
-      console.log('❌ Falló conexión con DATABASE_URL:', databaseUrlError.message);
-      lastError = databaseUrlError;
-      
-      // Método 2: Variables individuales
+    // Método 1: DATABASE_POOLER_URL (máxima prioridad para Vercel)
+    if (process.env.DATABASE_POOLER_URL) {
       try {
-        console.log('🔄 Intentando con variables individuales...');
-        client = await poolAlt.connect();
-        connection_type = "individual_vars";
-        console.log('✅ Conexión con variables individuales exitosa');
-      } catch (varsError) {
-        console.log('❌ Falló conexión con variables:', varsError.message);
-        lastError = varsError;
+        console.log('🔗 Intentando con DATABASE_POOLER_URL...');
+        client = await poolPooler.connect();
+        connection_type = "pooler";
+        console.log('✅ Conexión con POOLER exitosa');
+      } catch (poolerError) {
+        console.log('❌ Falló conexión con POOLER:', poolerError.message);
+        lastError = poolerError;
+      }
+    }
+    
+    // Método 2: DATABASE_URL (si pooler falló)
+    if (!client) {
+      try {
+        console.log('� Intentando con DATABASE_URL...');
+        client = await pool.connect();
+        connection_type = "database_url";
+        console.log('✅ Conexión con DATABASE_URL exitosa');
+      } catch (databaseUrlError) {
+        console.log('❌ Falló conexión con DATABASE_URL:', databaseUrlError.message);
+        lastError = databaseUrlError;
         
-        // Método 3: Connection string hardcoded (último recurso)
+        // Método 3: Variables individuales
         try {
-          console.log('🔄 Intentando con connection string hardcoded...');
-          client = await poolDirect.connect();
-          connection_type = "hardcoded_string";
-          console.log('✅ Conexión hardcoded exitosa');
-        } catch (hardcodedError) {
-          console.log('❌ Falló conexión hardcoded:', hardcodedError.message);
-          lastError = hardcodedError;
-          throw new Error(`Todas las conexiones fallaron:
-            DATABASE_URL: ${databaseUrlError.message}
-            Variables: ${varsError.message}
-            Hardcoded: ${hardcodedError.message}`);
+          console.log('🔄 Intentando con variables individuales...');
+          client = await poolAlt.connect();
+          connection_type = "individual_vars";
+          console.log('✅ Conexión con variables individuales exitosa');
+        } catch (varsError) {
+          console.log('❌ Falló conexión con variables:', varsError.message);
+          lastError = varsError;
+          
+          // Método 4: Connection string hardcoded (último recurso)
+          try {
+            console.log('🔄 Intentando con connection string hardcoded...');
+            client = await poolDirect.connect();
+            connection_type = "hardcoded_string";
+            console.log('✅ Conexión hardcoded exitosa');
+          } catch (hardcodedError) {
+            console.log('❌ Falló conexión hardcoded:', hardcodedError.message);
+            lastError = hardcodedError;
+            throw new Error(`Todas las conexiones fallaron:
+              POOLER: ${process.env.DATABASE_POOLER_URL ? poolerError?.message || 'NO INTENTADO' : 'NO CONFIGURADO'}
+              DATABASE_URL: ${databaseUrlError.message}
+              Variables: ${varsError.message}
+              Hardcoded: ${hardcodedError.message}`);
+          }
         }
       }
     }
@@ -276,6 +307,7 @@ app.get("/api/test-db-complete", async (req, res) => {
         message: `Test completo de BD exitoso (usando ${connection_type})`,
         connection_type: connection_type,
         environment: {
+          DATABASE_POOLER_URL: !!process.env.DATABASE_POOLER_URL ? 'CONFIGURADA' : 'NO CONFIGURADA',
           DATABASE_URL: !!process.env.DATABASE_URL ? 'CONFIGURADA' : 'NO CONFIGURADA',
           individual_vars: {
             DB_HOST: !!process.env.DB_HOST,
@@ -305,6 +337,7 @@ app.get("/api/test-db-complete", async (req, res) => {
       message: "Error en test de base de datos",
       error: error.message,
       environment: {
+        DATABASE_POOLER_URL: !!process.env.DATABASE_POOLER_URL ? 'CONFIGURADA' : 'NO CONFIGURADA',
         DATABASE_URL: !!process.env.DATABASE_URL ? 'CONFIGURADA' : 'NO CONFIGURADA',
         individual_vars: {
           DB_HOST: !!process.env.DB_HOST,
@@ -463,28 +496,43 @@ app.post("/api/auth/login", async (req, res) => {
 
     console.log('🔐 Intentando autenticación para:', userEmail);
 
-    // Conectar a la base de datos con múltiples estrategias
+    // Conectar a la base de datos con múltiples estrategias (pooler primero)
     console.log('🔌 Intentando conectar a la base de datos...');
     let client;
     
     try {
-      // Método 1: DATABASE_URL (prioridad)
-      client = await pool.connect();
-      console.log('✅ Conexión con DATABASE_URL exitosa');
-    } catch (databaseUrlError) {
-      console.log('❌ Falló DATABASE_URL, intentando variables...');
-      try {
-        // Método 2: Variables individuales
-        client = await poolAlt.connect();
-        console.log('✅ Conexión con variables individuales exitosa');
-      } catch (varsError) {
-        console.log('❌ Falló variables, intentando hardcoded...');
+      // Método 1: DATABASE_POOLER_URL (máxima prioridad)
+      if (process.env.DATABASE_POOLER_URL) {
         try {
-          // Método 3: Hardcoded (último recurso)
-          client = await poolDirect.connect();
-          console.log('✅ Conexión hardcoded exitosa');
-        } catch (hardcodedError) {
-          throw new Error(`Error de conexión total: DB_URL: ${databaseUrlError.message}, Vars: ${varsError.message}, Hard: ${hardcodedError.message}`);
+          client = await poolPooler.connect();
+          console.log('✅ Conexión con POOLER exitosa');
+        } catch (poolerError) {
+          console.log('❌ Falló POOLER, intentando DATABASE_URL...');
+          throw poolerError;
+        }
+      } else {
+        throw new Error('POOLER no configurado');
+      }
+    } catch (poolerError) {
+      try {
+        // Método 2: DATABASE_URL
+        client = await pool.connect();
+        console.log('✅ Conexión con DATABASE_URL exitosa');
+      } catch (databaseUrlError) {
+        console.log('❌ Falló DATABASE_URL, intentando variables...');
+        try {
+          // Método 3: Variables individuales
+          client = await poolAlt.connect();
+          console.log('✅ Conexión con variables individuales exitosa');
+        } catch (varsError) {
+          console.log('❌ Falló variables, intentando hardcoded...');
+          try {
+            // Método 4: Hardcoded (último recurso)
+            client = await poolDirect.connect();
+            console.log('✅ Conexión hardcoded exitosa');
+          } catch (hardcodedError) {
+            throw new Error(`Error de conexión total: POOLER: ${poolerError.message}, DB_URL: ${databaseUrlError.message}, Vars: ${varsError.message}, Hard: ${hardcodedError.message}`);
+          }
         }
       }
     }
