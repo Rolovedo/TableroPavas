@@ -401,7 +401,7 @@ const TableroBoard = () => {
                     }}
                 >
                     <div className="task-form">
-                        <div className="p-field">
+                        <div className="p-field full-width">
                             <label htmlFor="title">Título *</label>
                             <InputText
                                 id="title"
@@ -411,7 +411,7 @@ const TableroBoard = () => {
                             />
                         </div>
 
-                        <div className="p-field">
+                        <div className="p-field full-width">
                             <label htmlFor="description">Descripción</label>
                             <InputTextarea
                                 id="description"
@@ -490,7 +490,7 @@ const TableroBoard = () => {
                                 placeholder="0"
                             />
                         </div>
-                        <div className="p-field">
+                        <div className="p-field full-width">
                             <label htmlFor="requiredSkills">Habilidades Requeridas</label>
                             <InputText
                                 id="requiredSkills"

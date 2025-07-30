@@ -128,18 +128,60 @@
     }
   }
   
-  .task-form {
-    .p-field {
-      margin-bottom: 16px;
-      
-      label {
-        display: block;
-        margin-bottom: 4px;
-        font-weight: 500;
-        color: #333;
-      }
+.task-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  .p-field {
+    display: flex;
+    flex-direction: column;
+    grid-column: span 1;
+
+    label {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+      color: #333;
     }
-    
+
+    input,
+    textarea,
+    .p-dropdown,
+    .p-calendar {
+      width: 100%;
+    }
+
+    .p-inputtext,
+    .p-dropdown,
+    .p-calendar {
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      font-size: 0.95rem;
+    }
+
+    .p-dropdown .p-dropdown-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    &.full-width {
+      grid-column: span 2;
+    }
+  }
+
+  .form-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    grid-column: span 2;
+    margin-top: 1rem;
+
+    .p-button {
+      min-width: 120px;
+    }
+  }
+
     .form-buttons {
       display: flex;
       gap: 12px;
