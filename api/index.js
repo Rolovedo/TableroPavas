@@ -944,7 +944,8 @@ app.post("/api/tablero/tareas", async (req, res) => {
       fecha_vencimiento,
       horas_estimadas,
       habilidades_requeridas,
-      creado_por
+      creado_por,
+      actualizado_por
     } = req.body;
     // Validaciones básicas
     if (!titulo || !creado_por) {
@@ -953,35 +954,37 @@ app.post("/api/tablero/tareas", async (req, res) => {
         message: "Título y creado_por son requeridos"
       });
     }
+    // Valores por defecto para que nunca queden nulos
+    const safeCategoria = categoria || 'sin-categoria';
+    const safePrioridad = prioridad || 'media';
+    const safeEstado = estado || 'pendiente';
+    const safeActualizadoPor = actualizado_por || creado_por;
     // Usar poolPooler si está disponible
     const client = process.env.DATABASE_POOLER_URL ? await poolPooler.connect() : await pool.connect();
     try {
       const query = `
         INSERT INTO tablero_tareas (
           titulo, descripcion, asignado_a, prioridad, estado, categoria,
-          fecha_vencimiento, horas_estimadas, habilidades_requeridas, creado_por
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          fecha_vencimiento, horas_estimadas, habilidades_requeridas, creado_por, actualizado_por
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
       `;
-      
       const values = [
         titulo,
         descripcion,
         asignado_a,
-        prioridad || 'media',
-        estado || 'pendiente',
-        categoria,
+        safePrioridad,
+        safeEstado,
+        safeCategoria,
         fecha_vencimiento,
         horas_estimadas || 0,
-        habilidades_requeridas ? JSON.stringify(habilidades_requeridas) : null,
-        creado_por
+        habilidades_requeridas ? JSON.stringify(habilidades_requeridas) : '[]',
+        creado_por,
+        safeActualizadoPor
       ];
-      
       const result = await client.query(query, values);
       const nuevaTarea = result.rows[0];
-      
       console.log('✅ Tarea creada:', nuevaTarea.id);
-      
       res.json({
         success: true,
         message: "Tarea creada exitosamente",
@@ -997,7 +1000,6 @@ app.post("/api/tablero/tareas", async (req, res) => {
           createdAt: nuevaTarea.fecha_creacion
         }
       });
-      
     } finally {
       client.release();
     }
