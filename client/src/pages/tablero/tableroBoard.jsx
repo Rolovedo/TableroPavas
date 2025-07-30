@@ -43,7 +43,9 @@ const TableroBoard = () => {
         priority: null,
         dueDate: null,
         category: null,
-        estimatedHours: 0
+        estimatedHours: 0,
+        actualHours: 0,
+        requiredSkills: [],
     });
 
     // Opciones para dropdowns
@@ -116,43 +118,41 @@ const TableroBoard = () => {
         try {
             setLoading(true);
             console.log('🔍 Creando nueva tarea...');
-            
             if (!newTask.title || !newTask.assignee) {
                 showToastMessage('warn', 'Campos Requeridos', 'Título y asignado son obligatorios');
                 return;
             }
-
+            const user = authService.getTableroUser();
             const taskToCreate = {
                 title: newTask.title,
                 description: newTask.description,
                 assignee: newTask.assignee,
-                priority: newTask.priority?.value || 'medium',
+                priority: newTask.priority?.value || 'media',
                 status: selectedColumn,
                 category: newTask.category?.value,
                 dueDate: newTask.dueDate,
                 estimatedHours: newTask.estimatedHours || 0,
-                requiredSkills: []
+                actualHours: newTask.actualHours || 0,
+                requiredSkills: newTask.requiredSkills,
+                createdBy: user?.id || user?.usuId || 1,
+                updatedBy: user?.id || user?.usuId || 1
             };
-
-            // Crear en la base de datos
             const tareaCreada = await tareasService.crearTarea(taskToCreate);
-            
-            // Agregar la tarea creada al estado local
             setTasks(prevTasks => ({
                 ...prevTasks,
                 [selectedColumn]: [...prevTasks[selectedColumn], {
                     ...tareaCreada,
                     assignee: newTask.assignee,
-                    priority: newTask.priority?.value || 'medium',
+                    priority: newTask.priority?.value || 'media',
                     category: newTask.category?.value,
                     dueDate: newTask.dueDate,
                     estimatedHours: newTask.estimatedHours || 0,
-                    createdBy: authService.getTableroUser()?.nombre || 'Usuario',
+                    actualHours: newTask.actualHours || 0,
+                    requiredSkills: newTask.requiredSkills,
+                    createdBy: user?.nombre || 'Usuario',
                     createdAt: new Date()
                 }]
             }));
-
-            // Limpiar formulario
             setNewTask({
                 title: '',
                 description: '',
@@ -160,14 +160,13 @@ const TableroBoard = () => {
                 priority: null,
                 dueDate: null,
                 category: null,
-                estimatedHours: 0
+                estimatedHours: 0,
+                actualHours: 0,
+                requiredSkills: []
             });
-
             setShowTaskDialog(false);
             showToastMessage('success', 'Tarea Creada', 'La tarea se ha creado exitosamente en la base de datos');
-            
             console.log('✅ Tarea creada exitosamente:', tareaCreada);
-
         } catch (error) {
             console.error('Error creando tarea:', error);
             showToastMessage('error', 'Error', 'No se pudo crear la tarea en la base de datos');
@@ -471,6 +470,28 @@ const TableroBoard = () => {
                             />
                         </div>
 
+                        <div className="p-field">
+                            <label htmlFor="actualHours">Horas Reales</label>
+                            <InputText
+                                id="actualHours"
+                                type="number"
+                                value={newTask.actualHours}
+                                onChange={(e) => setNewTask(prev => ({ ...prev, actualHours: parseInt(e.target.value) || 0 }))}
+                                placeholder="0"
+                            />
+                        </div>
+                        <div className="p-field">
+                            <label htmlFor="requiredSkills">Habilidades Requeridas</label>
+                            <InputText
+                                id="requiredSkills"
+                                value={newTask.requiredSkills.join(', ')}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    setNewTask(prev => ({ ...prev, requiredSkills: value.split(',').map(s => s.trim()).filter(Boolean) }));
+                                }}
+                                placeholder="Ej: React, Node, SQL"
+                            />
+                        </div>
                         <div className="form-buttons">
                             <Button 
                                 label="Cancelar" 
