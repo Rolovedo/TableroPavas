@@ -2,7 +2,10 @@
 
 class AuthService {
     constructor() {
-        this.baseURL = 'http://localhost:5000';
+        // Usar la URL de producción de Vercel para el API
+        this.baseURL = process.env.NODE_ENV === 'production' 
+            ? 'https://tablero-pavas-git-desarrollo-acevedos-projects.vercel.app'
+            : 'http://localhost:5000';
     }
 
     // Verificar si hay token válido para tablero
@@ -36,41 +39,107 @@ class AuthService {
         };
     }
 
-    // Generar token temporal para tablero
-    generateTableroToken = async (usuario, clave) => {
+    // Login real con backend de base de datos
+    loginWithBackend = async (email, password) => {
         try {
-            console.log('🔐 Generando token temporal para tablero:', usuario);
+            console.log('🔐 Iniciando login con backend BD:', email);
             
-            // Para desarrollo: aceptar cualquier contraseña para admin
-            if (usuario === 'admin@tablero.com' || usuario === 'admin') {
-                const tempToken = `tablero_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-                
-                localStorage.setItem('tablero_token', tempToken);
+            const response = await fetch(`${this.baseURL}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    email: email,
+                    password: password
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            console.log('📊 Respuesta backend:', result);
+
+            if (result.success) {
+                // Guardar datos reales del backend
+                localStorage.setItem('tablero_token', result.token);
                 localStorage.setItem('tablero_user', JSON.stringify({
-                    usu_id: 1,
-                    nombre: 'Administrador Sistema',
-                    email: usuario,
-                    usuario: usuario,
+                    usu_id: result.usuId,
+                    nombre: result.nombre,
+                    email: result.correo,
+                    usuario: result.user?.email || email,
+                    perfil: result.perfil,
                     authenticated: true,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    source: 'backend_database'
                 }));
-                
-                console.log('✅ Token temporal generado exitosamente');
-                return { 
-                    success: true, 
-                    token: tempToken,
+
+                console.log('✅ Login con BD exitoso, datos guardados');
+                return {
+                    success: true,
+                    token: result.token,
                     user: {
-                        usu_id: 1,
-                        nombre: 'Administrador Sistema',
-                        email: usuario,
-                        usuario: usuario
+                        usu_id: result.usuId,
+                        nombre: result.nombre,
+                        email: result.correo,
+                        perfil: result.perfil
                     }
                 };
             } else {
-                throw new Error('Usuario no válido para tablero');
+                throw new Error(result.message || 'Error en login');
             }
         } catch (error) {
-            console.error('❌ Error generando token temporal:', error);
+            console.error('❌ Error en login con backend:', error);
+            throw error;
+        }
+    };
+
+    // Generar token temporal para tablero (SOLO PARA FALLBACK)
+    generateTableroToken = async (usuario, clave) => {
+        try {
+            console.log('⚠️ Intentando login con backend primero...');
+            
+            // PRIMERO: Intentar login real con backend
+            try {
+                return await this.loginWithBackend(usuario, clave);
+            } catch (backendError) {
+                console.log('❌ Backend falló, usando token temporal:', backendError.message);
+                
+                // FALLBACK: Solo si el backend falla
+                if (usuario === 'admin@tablero.com' || usuario === 'admin') {
+                    const tempToken = `fallback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                    
+                    localStorage.setItem('tablero_token', tempToken);
+                    localStorage.setItem('tablero_user', JSON.stringify({
+                        usu_id: 1,
+                        nombre: 'Administrador Sistema (Fallback)',
+                        email: usuario,
+                        usuario: usuario,
+                        authenticated: true,
+                        timestamp: Date.now(),
+                        source: 'fallback_token'
+                    }));
+                    
+                    console.log('⚠️ Token temporal generado como fallback');
+                    return { 
+                        success: true, 
+                        token: tempToken,
+                        user: {
+                            usu_id: 1,
+                            nombre: 'Administrador Sistema (Fallback)',
+                            email: usuario,
+                            usuario: usuario
+                        }
+                    };
+                } else {
+                    throw new Error('Usuario no válido y backend no disponible');
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error completo en autenticación:', error);
             throw error;
         }
     };
