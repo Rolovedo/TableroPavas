@@ -80,12 +80,12 @@ class TareasService {
         try {
             console.log('📝 Creando nueva tarea:', tareaData);
             
-            // Mapear datos del frontend a formato de BD
+            // Enviar prioridad y categoría tal como vienen del formulario
             const tareaParaBD = {
                 titulo: tareaData.title,
                 descripcion: tareaData.description,
                 asignado_a: tareaData.assignee?.id,
-                prioridad: this.mapPriorityToDatabase(tareaData.priority),
+                prioridad: tareaData.priority,
                 estado: this.mapStatusToDatabase(tareaData.status || 'backlog'),
                 categoria: tareaData.category,
                 fecha_vencimiento: tareaData.dueDate ? this.formatDate(tareaData.dueDate) : null,
