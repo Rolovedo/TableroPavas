@@ -955,8 +955,8 @@ app.post("/api/tablero/tareas", async (req, res) => {
       });
     }
     // Valores por defecto para que nunca queden nulos
-    const safeCategoria = categoria || 'sin-categoria';
-    const safePrioridad = prioridad || 'media';
+    const safeCategoria = categoria;
+    const safePrioridad = prioridad;
     const safeEstado = estado || 'pendiente';
     const safeActualizadoPor = actualizado_por || creado_por;
     // Usar poolPooler si está disponible

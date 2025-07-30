@@ -128,9 +128,9 @@ const TableroBoard = () => {
                 description: newTask.description,
                 assignee: newTask.assignee,
                 // Mapear correctamente prioridad y categoría según lo que espera el backend
-                priority: newTask.priority?.value || 'media',
+                priority: newTask.priority?.value,
                 status: selectedColumn,
-                category: newTask.category?.value || 'sin-categoria',
+                category: newTask.category?.value,
                 dueDate: newTask.dueDate,
                 estimatedHours: newTask.estimatedHours || 0,
                 actualHours: newTask.actualHours || 0,
@@ -144,7 +144,7 @@ const TableroBoard = () => {
                 [selectedColumn]: [...prevTasks[selectedColumn], {
                     ...tareaCreada,
                     assignee: newTask.assignee,
-                    priority: newTask.priority?.value || 'media',
+                    priority: newTask.priority?.value,
                     category: newTask.category?.value,
                     dueDate: newTask.dueDate,
                     estimatedHours: newTask.estimatedHours || 0,
