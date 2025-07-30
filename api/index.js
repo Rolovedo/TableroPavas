@@ -215,7 +215,7 @@ app.post("/api/test-login", (req, res) => {
   });
 });
 
-// Login endpoint con prefijo /api - VERSION SIMPLIFICADA PARA TESTING
+// Login endpoint con prefijo /api - AUTENTICACIÓN CON BASE DE DATOS
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password, usuario, clave } = req.body;
@@ -231,50 +231,88 @@ app.post("/api/auth/login", async (req, res) => {
       });
     }
 
-    // LOGIN SIMPLIFICADO PARA TESTING - SIN BASE DE DATOS
-    // Credenciales de prueba temporales
-    const testCredentials = [
-      { email: "admin@tablero.com", usuario: "admin@tablero.com", password: "admin123", clave: "admin123", nombre: "Administrador" },
-      { email: "test@test.com", usuario: "test@test.com", password: "test123", clave: "test123", nombre: "Usuario Test" }
-    ];
+    console.log('🔐 Intentando autenticación para:', userEmail);
+
+    // Conectar a la base de datos
+    const client = await pool.connect();
     
-    // Buscar en credenciales de prueba
-    const foundUser = testCredentials.find(user => 
-      (user.email === userEmail || user.usuario === userEmail) &&
-      (user.password === userPassword || user.clave === userPassword)
-    );
-    
-    if (foundUser) {
-      res.json({
+    try {
+      // Buscar usuario en la base de datos por email o usuario
+      const userQuery = await client.query(`
+        SELECT u.*, p.prf_nombre 
+        FROM tbl_usuarios u
+        LEFT JOIN tbl_perfil p ON u.prf_id = p.prf_id
+        WHERE (u.usu_correo = $1 OR u.usu_usuario = $1) 
+        AND u.est_id = 1
+        LIMIT 1
+      `, [userEmail]);
+
+      if (userQuery.rows.length === 0) {
+        console.log('❌ Usuario no encontrado:', userEmail);
+        return res.status(401).json({
+          success: false,
+          message: "Usuario no encontrado o inactivo"
+        });
+      }
+
+      const dbUser = userQuery.rows[0];
+      console.log('👤 Usuario encontrado:', dbUser.usu_nombre);
+
+      // Importar bcrypt para verificar contraseñas hasheadas
+      const bcrypt = await import('bcrypt');
+      
+      // Verificar contraseña
+      let passwordMatch = false;
+      
+      try {
+        // Intentar verificar con bcrypt (contraseñas hasheadas)
+        passwordMatch = await bcrypt.compare(userPassword, dbUser.usu_clave);
+      } catch (bcryptError) {
+        // Si falla bcrypt, verificar contraseña en texto plano (para compatibilidad temporal)
+        passwordMatch = (userPassword === dbUser.usu_clave);
+      }
+
+      if (!passwordMatch) {
+        console.log('❌ Contraseña incorrecta para:', userEmail);
+        return res.status(401).json({
+          success: false,
+          message: "Contraseña incorrecta"
+        });
+      }
+
+      console.log('✅ Autenticación exitosa para:', userEmail);
+
+      // Generar respuesta en formato compatible con AuthContext
+      const response = {
         success: true,
-        message: "Login exitoso (modo testing)",
+        message: "Login exitoso",
         // Formato compatible con AuthContext.jsx
-        usuId: 1,
-        usuFoto: null,
-        nombre: foundUser.nombre,
-        perfil: "Administrador",
-        agenda: 1,
-        instructor: 0,
-        correo: foundUser.email,
-        documento: "12345678",
-        telefono: "1234567890",
-        token: "test-token-123",
-        permisos: [],
-        ventanas: [],
-        cambioclave: 0,
+        usuId: dbUser.usu_id,
+        usuFoto: dbUser.usu_foto,
+        nombre: `${dbUser.usu_nombre} ${dbUser.usu_apellido || ''}`.trim(),
+        perfil: dbUser.prf_nombre || 'Usuario',
+        agenda: dbUser.usu_agenda,
+        instructor: dbUser.usu_instructor,
+        correo: dbUser.usu_correo,
+        documento: dbUser.usu_documento,
+        telefono: dbUser.usu_telefono,
+        token: `auth_${dbUser.usu_id}_${Date.now()}`,
+        permisos: [], // Se pueden cargar por separado si es necesario
+        ventanas: [], // Se pueden cargar por separado si es necesario
+        cambioclave: dbUser.usu_cambio,
         // También mantener el formato original por compatibilidad
         user: {
-          id: 1,
-          email: foundUser.email,
-          nombre: foundUser.nombre,
-          idusuario: 1
+          id: dbUser.usu_id,
+          email: dbUser.usu_correo,
+          nombre: `${dbUser.usu_nombre} ${dbUser.usu_apellido || ''}`.trim(),
+          idusuario: dbUser.usu_id
         }
-      });
-    } else {
-      res.status(401).json({
-        success: false,
-        message: "Credenciales incorrectas. Por favor, verifica tu email y contraseña."
-      });
+      };
+
+      res.json(response);
+
+    } finally {
+      client.release();
     }
 
   } catch (error) {
