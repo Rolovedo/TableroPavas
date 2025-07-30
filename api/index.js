@@ -680,13 +680,13 @@ app.get("/api/app/get_menu", (req, res) => {
       icon: "pi pi-fw pi-eye",
       toa: "tablero"
     },
-    {
-      id: 22,
-      padre: 2,
-      label: "Nueva Tarea",
-      icon: "pi pi-fw pi-plus",
-      toa: "tablero/nueva"
-    },
+    //{
+     // id: 22,
+      //padre: 2,
+      //label: "Nueva Tarea",
+      //icon: "pi pi-fw pi-plus",
+      //toa: "tablero/nueva"
+    //},
     {
       id: 31,
       padre: 3,
@@ -727,13 +727,13 @@ app.get("/api/app/get_menu", (req, res) => {
             label: "Ver Tablero",
             icon: "pi pi-fw pi-eye",
             to: "/tablero"
-          },
-          {
-            id: 22,
-            label: "Nueva Tarea",
-            icon: "pi pi-fw pi-plus",
-            to: "/tablero/nueva"
           }
+        //  {
+          //  id: 22,
+            //label: "Nueva Tarea",
+            //icon: "pi pi-fw pi-plus",
+            //to: "/tablero/nueva"
+          //}
         ]
       },
       {
