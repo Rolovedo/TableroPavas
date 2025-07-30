@@ -202,20 +202,6 @@ const Login = () => {
                                             }
                                         }}
                                     />
-                                    
-                                    <div style={{ 
-                                        marginTop: '15px', 
-                                        padding: '10px', 
-                                        backgroundColor: '#f8f9fa', 
-                                        borderRadius: '4px', 
-                                        fontSize: '12px' 
-                                    }}>
-                                        <strong>
-                                            <span role="img" aria-label="lock">🔐</span> Para probar:
-                                        </strong><br />
-                                        <strong>Usuario:</strong> admin@tablero.com<br />
-                                        <strong>Contraseña:</strong> admin123<br />
-                                    </div>
                                 </>
                             )}
 
