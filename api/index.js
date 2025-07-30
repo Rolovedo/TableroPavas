@@ -33,6 +33,17 @@ const poolAlt = new Pool({
     }
 });
 
+// Configuración con connection string como prioridad principal
+const poolDirect = new Pool({
+    connectionString: 'postgresql://postgres:98631063ace@db.eukvsggruwdokftylssc.supabase.co:5432/postgres',
+    ssl: {
+        rejectUnauthorized: false
+    },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+});
+
 // Middleware básico
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -127,29 +138,69 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
+// Test de conexión directa con connection string
+app.get("/api/test-direct", async (req, res) => {
+  try {
+    console.log('🔗 Probando conexión directa...');
+    const client = await poolDirect.connect();
+    const result = await client.query('SELECT NOW() as time, current_database() as db');
+    client.release();
+    
+    res.json({ 
+      success: true, 
+      message: "Conexión directa exitosa",
+      connection_string: "postgresql://postgres:***@db.eukvsggruwdokftylssc.supabase.co:5432/postgres",
+      result: result.rows[0]
+    });
+  } catch (error) {
+    console.error('❌ Error en conexión directa:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Error en conexión directa",
+      error: error.message,
+      stack: error.stack 
+    });
+  }
+});
+
 // Test completo de base de datos y usuarios
 app.get("/api/test-db-complete", async (req, res) => {
   try {
     console.log('🔌 Iniciando test completo de BD...');
     
     let client;
-    let connection_type = "variables";
+    let connection_type = "fallback";
     
+    // Método 3: Connection string directa (más confiable)
     try {
-      // Intentar conexión con variables de entorno primero
-      client = await pool.connect();
-      console.log('✅ Conexión con variables exitosa');
-    } catch (envError) {
-      console.log('❌ Falló conexión con variables:', envError.message);
-      console.log('🔄 Intentando con connection string...');
+      console.log('🔗 Intentando con connection string directa...');
+      client = await poolDirect.connect();
+      connection_type = "direct_string";
+      console.log('✅ Conexión directa exitosa');
+    } catch (directError) {
+      console.log('❌ Falló conexión directa:', directError.message);
       
+      // Método 1: Variables de entorno
       try {
-        // Intentar con connection string
-        client = await poolAlt.connect();
-        connection_type = "connection_string";
-        console.log('✅ Conexión con connection string exitosa');
-      } catch (stringError) {
-        throw new Error(`Ambas conexiones fallaron: Variables: ${envError.message}, String: ${stringError.message}`);
+        console.log('🔄 Intentando con variables de entorno...');
+        client = await pool.connect();
+        connection_type = "variables";
+        console.log('✅ Conexión con variables exitosa');
+      } catch (envError) {
+        console.log('❌ Falló conexión con variables:', envError.message);
+        
+        // Método 2: Connection string con variables
+        try {
+          console.log('🔄 Intentando con connection string alternativa...');
+          client = await poolAlt.connect();
+          connection_type = "alt_string";
+          console.log('✅ Conexión alternativa exitosa');
+        } catch (stringError) {
+          throw new Error(`Todas las conexiones fallaron: 
+            Directa: ${directError.message}
+            Variables: ${envError.message}
+            Alternativa: ${stringError.message}`);
+        }
       }
     }
     
@@ -365,10 +416,23 @@ app.post("/api/auth/login", async (req, res) => {
 
     console.log('🔐 Intentando autenticación para:', userEmail);
 
-    // Conectar a la base de datos
+    // Conectar a la base de datos con método directo más confiable
     console.log('🔌 Intentando conectar a la base de datos...');
-    const client = await pool.connect();
-    console.log('✅ Conexión a BD exitosa');
+    let client;
+    
+    try {
+      // Intentar connection string directa primero
+      client = await poolDirect.connect();
+      console.log('✅ Conexión directa a BD exitosa');
+    } catch (directError) {
+      console.log('❌ Falló conexión directa, intentando alternativa...');
+      try {
+        client = await pool.connect();
+        console.log('✅ Conexión alternativa a BD exitosa');
+      } catch (altError) {
+        throw new Error(`Error de conexión: Directa: ${directError.message}, Alt: ${altError.message}`);
+      }
+    }
     
     try {
       // Buscar usuario en la base de datos por email o usuario
