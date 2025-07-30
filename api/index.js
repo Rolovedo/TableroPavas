@@ -835,9 +835,8 @@ app.post("/api/app/verify_token", (req, res) => {
 app.get("/api/tablero/tareas", async (req, res) => {
   try {
     console.log('📋 Obteniendo tareas del tablero...');
-    
-    const client = await pool.connect();
-    
+    // Usar poolPooler si está disponible
+    const client = process.env.DATABASE_POOLER_URL ? await poolPooler.connect() : await pool.connect();
     try {
       // Usar la vista que ya tiene joins con usuarios
       const query = `
@@ -924,7 +923,6 @@ app.get("/api/tablero/tareas", async (req, res) => {
 app.post("/api/tablero/tareas", async (req, res) => {
   try {
     console.log('📝 Creando nueva tarea:', req.body);
-    
     const {
       titulo,
       descripcion,
@@ -937,7 +935,6 @@ app.post("/api/tablero/tareas", async (req, res) => {
       habilidades_requeridas,
       creado_por
     } = req.body;
-    
     // Validaciones básicas
     if (!titulo || !creado_por) {
       return res.status(400).json({
@@ -945,9 +942,8 @@ app.post("/api/tablero/tareas", async (req, res) => {
         message: "Título y creado_por son requeridos"
       });
     }
-    
-    const client = await pool.connect();
-    
+    // Usar poolPooler si está disponible
+    const client = process.env.DATABASE_POOLER_URL ? await poolPooler.connect() : await pool.connect();
     try {
       const query = `
         INSERT INTO tablero_tareas (
@@ -1010,7 +1006,6 @@ app.put("/api/tablero/tareas/:id", async (req, res) => {
   try {
     const tareaId = req.params.id;
     console.log(`📝 Actualizando tarea ${tareaId}:`, req.body);
-    
     const {
       titulo,
       descripcion,
@@ -1025,9 +1020,8 @@ app.put("/api/tablero/tareas/:id", async (req, res) => {
       habilidades_requeridas,
       actualizado_por
     } = req.body;
-    
-    const client = await pool.connect();
-    
+    // Usar poolPooler si está disponible
+    const client = process.env.DATABASE_POOLER_URL ? await poolPooler.connect() : await pool.connect();
     try {
       // Construir query dinámicamente solo con campos que se van a actualizar
       const updates = [];
@@ -1145,9 +1139,8 @@ app.put("/api/tablero/tareas/:id", async (req, res) => {
 app.get("/api/tablero/desarrolladores", async (req, res) => {
   try {
     console.log('👥 Obteniendo desarrolladores...');
-    
-    const client = await pool.connect();
-    
+    // Usar poolPooler si está disponible
+    const client = process.env.DATABASE_POOLER_URL ? await poolPooler.connect() : await pool.connect();
     try {
       const query = `
         SELECT 
@@ -1211,9 +1204,8 @@ app.get("/api/tablero/desarrolladores", async (req, res) => {
 app.post("/api/tablero/seed-data", async (req, res) => {
   try {
     console.log('🌱 Creando datos de prueba...');
-    
-    const client = await pool.connect();
-    
+    // Usar poolPooler si está disponible
+    const client = process.env.DATABASE_POOLER_URL ? await poolPooler.connect() : await pool.connect();
     try {
       // Verificar si ya existen desarrolladores
       const existingDevs = await client.query('SELECT COUNT(*) FROM tablero_desarrolladores');
