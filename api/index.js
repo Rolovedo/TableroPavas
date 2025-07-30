@@ -25,6 +25,14 @@ const pool = new Pool({
     connectionTimeoutMillis: 2000,
 });
 
+// Configuración alternativa con connection string
+const poolAlt = new Pool({
+    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:98631063ace@db.eukvsggruwdokftylssc.supabase.co:5432/postgres',
+    ssl: {
+        rejectUnauthorized: false
+    }
+});
+
 // Middleware básico
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true }));
@@ -123,7 +131,27 @@ app.get("/test-db", async (req, res) => {
 app.get("/api/test-db-complete", async (req, res) => {
   try {
     console.log('🔌 Iniciando test completo de BD...');
-    const client = await pool.connect();
+    
+    let client;
+    let connection_type = "variables";
+    
+    try {
+      // Intentar conexión con variables de entorno primero
+      client = await pool.connect();
+      console.log('✅ Conexión con variables exitosa');
+    } catch (envError) {
+      console.log('❌ Falló conexión con variables:', envError.message);
+      console.log('🔄 Intentando con connection string...');
+      
+      try {
+        // Intentar con connection string
+        client = await poolAlt.connect();
+        connection_type = "connection_string";
+        console.log('✅ Conexión con connection string exitosa');
+      } catch (stringError) {
+        throw new Error(`Ambas conexiones fallaron: Variables: ${envError.message}, String: ${stringError.message}`);
+      }
+    }
     
     try {
       // 1. Test de conexión básica
@@ -167,7 +195,8 @@ app.get("/api/test-db-complete", async (req, res) => {
       
       res.json({
         success: true,
-        message: "Test completo de BD exitoso",
+        message: `Test completo de BD exitoso (usando ${connection_type})`,
+        connection_type: connection_type,
         results: {
           connection: timeResult.rows[0],
           table_structure: tableCheck.rows,
