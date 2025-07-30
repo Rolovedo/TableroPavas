@@ -401,30 +401,22 @@ const TableroBoard = () => {
                         setEditingTask(null);
                     }}
                 >
-                    <div className="task-form">
-                        {/* Grupo: Información básica */}
-                        <div className="p-field full-width">
+                    <div className="task-form kanban-task-form-grid">
+                        <div className="form-section" style={{gridColumn: '1 / 3', marginBottom: 8}}>
+                            <h3 style={{color:'#1976d2', margin:'0 0 8px 0', fontWeight:700, letterSpacing:1}}>Información Básica</h3>
+                        </div>
+                        <div className="p-field" style={{gridColumn:'1/2'}}>
                             <label htmlFor="title">Título <span style={{color:'#dc3545'}}>*</span></label>
                             <InputText
                                 id="title"
                                 value={newTask.title}
                                 onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
-                                placeholder="Ingresa el título de la tarea"
+                                placeholder="Título de la tarea"
                                 className={(!newTask.title ? 'p-invalid' : '')}
+                                style={{borderColor:!newTask.title?'#dc3545':undefined, background:'#f7faff'}}
                             />
                         </div>
-                        <div className="p-field full-width">
-                            <label htmlFor="description">Descripción</label>
-                            <InputTextarea
-                                id="description"
-                                value={newTask.description}
-                                onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
-                                rows={3}
-                                placeholder="Describe la tarea"
-                            />
-                        </div>
-                        {/* Grupo: Asignación y planificación */}
-                        <div className="p-field">
+                        <div className="p-field" style={{gridColumn:'2/3'}}>
                             <label htmlFor="assignee">Asignado a <span style={{color:'#dc3545'}}>*</span></label>
                             <Dropdown
                                 id="assignee"
@@ -434,7 +426,22 @@ const TableroBoard = () => {
                                 optionLabel="name"
                                 placeholder="Selecciona un desarrollador"
                                 className={(!newTask.assignee ? 'p-invalid' : '')}
+                                style={{borderColor:!newTask.assignee?'#dc3545':undefined, background:'#f7faff'}}
                             />
+                        </div>
+                        <div className="p-field full-width" style={{gridColumn:'1/3'}}>
+                            <label htmlFor="description">Descripción</label>
+                            <InputTextarea
+                                id="description"
+                                value={newTask.description}
+                                onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                                rows={2}
+                                placeholder="Describe la tarea"
+                                style={{background:'#f7faff'}}
+                            />
+                        </div>
+                        <div className="form-section" style={{gridColumn: '1 / 3', margin:'8px 0 0 0'}}>
+                            <h3 style={{color:'#1976d2', margin:'0 0 8px 0', fontWeight:700, letterSpacing:1}}>Planificación</h3>
                         </div>
                         <div className="p-field">
                             <label htmlFor="priority">Prioridad</label>
@@ -445,6 +452,7 @@ const TableroBoard = () => {
                                 onChange={(e) => setNewTask(prev => ({ ...prev, priority: e.value }))}
                                 optionLabel="label"
                                 placeholder="Selecciona prioridad"
+                                style={{background:'#f7faff'}}
                             />
                         </div>
                         <div className="p-field">
@@ -456,6 +464,7 @@ const TableroBoard = () => {
                                 onChange={(e) => setNewTask(prev => ({ ...prev, category: e.value }))}
                                 optionLabel="label"
                                 placeholder="Selecciona categoría"
+                                style={{background:'#f7faff'}}
                             />
                         </div>
                         <div className="p-field">
@@ -467,16 +476,7 @@ const TableroBoard = () => {
                                 onChange={(e) => setNewTask(prev => ({ ...prev, estimatedHours: parseInt(e.target.value) || 0 }))}
                                 placeholder="0"
                                 min={0}
-                            />
-                        </div>
-                        <div className="p-field">
-                            <label htmlFor="dueDate">Fecha de Vencimiento</label>
-                            <Calendar
-                                id="dueDate"
-                                value={newTask.dueDate}
-                                onChange={(e) => setNewTask(prev => ({ ...prev, dueDate: e.value }))}
-                                showIcon
-                                dateFormat="dd/mm/yy"
+                                style={{background:'#f7faff'}}
                             />
                         </div>
                         <div className="p-field">
@@ -488,10 +488,24 @@ const TableroBoard = () => {
                                 onChange={(e) => setNewTask(prev => ({ ...prev, actualHours: parseInt(e.target.value) || 0 }))}
                                 placeholder="0"
                                 min={0}
+                                style={{background:'#f7faff'}}
                             />
                         </div>
-                        {/* Grupo: Habilidades */}
-                        <div className="p-field full-width">
+                        <div className="p-field">
+                            <label htmlFor="dueDate">Fecha de Vencimiento</label>
+                            <Calendar
+                                id="dueDate"
+                                value={newTask.dueDate}
+                                onChange={(e) => setNewTask(prev => ({ ...prev, dueDate: e.value }))}
+                                showIcon
+                                dateFormat="dd/mm/yy"
+                                style={{background:'#f7faff', width:'100%'}}
+                            />
+                        </div>
+                        <div className="form-section" style={{gridColumn: '1 / 3', margin:'8px 0 0 0'}}>
+                            <h3 style={{color:'#1976d2', margin:'0 0 8px 0', fontWeight:700, letterSpacing:1}}>Habilidades</h3>
+                        </div>
+                        <div className="p-field full-width" style={{gridColumn:'1/3'}}>
                             <label htmlFor="requiredSkills">Habilidades Requeridas</label>
                             <InputText
                                 id="requiredSkills"
@@ -501,6 +515,7 @@ const TableroBoard = () => {
                                     setNewTask(prev => ({ ...prev, requiredSkills: value.split(',').map(s => s.trim()).filter(Boolean) }));
                                 }}
                                 placeholder="Ej: React, Node, SQL"
+                                style={{background:'#f7faff'}}
                             />
                             {newTask.requiredSkills.length > 0 && (
                                 <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
