@@ -176,7 +176,7 @@ class TareasService {
             'high': 'alta',
             'very-high': 'muy-alta'
         };
-        return priorityMap[priority] || 'media';
+        return priorityMap[priority];
     }
 
     mapStatusToDatabase(status) {
