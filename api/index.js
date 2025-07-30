@@ -119,6 +119,79 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
+// Test completo de base de datos y usuarios
+app.get("/api/test-db-complete", async (req, res) => {
+  try {
+    console.log('🔌 Iniciando test completo de BD...');
+    const client = await pool.connect();
+    
+    try {
+      // 1. Test de conexión básica
+      const timeResult = await client.query('SELECT NOW() as current_time');
+      console.log('✅ Conexión básica exitosa:', timeResult.rows[0]);
+      
+      // 2. Verificar que existe la tabla tbl_usuarios
+      const tableCheck = await client.query(`
+        SELECT table_name, column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'tbl_usuarios'
+        ORDER BY ordinal_position;
+      `);
+      
+      console.log('📋 Estructura de tabla tbl_usuarios:', tableCheck.rows);
+      
+      // 3. Contar usuarios
+      const userCount = await client.query('SELECT COUNT(*) as total FROM tbl_usuarios');
+      console.log('👥 Total de usuarios:', userCount.rows[0]);
+      
+      // 4. Ver primeros 3 usuarios (sin contraseñas)
+      const users = await client.query(`
+        SELECT 
+          usu_id, 
+          usu_nombre, 
+          usu_apellido, 
+          usu_correo, 
+          usu_usuario, 
+          est_id,
+          prf_id
+        FROM tbl_usuarios 
+        LIMIT 3
+      `);
+      
+      console.log('👤 Usuarios encontrados:', users.rows);
+      
+      // 5. Verificar tabla de perfiles
+      const profiles = await client.query('SELECT * FROM tbl_perfil LIMIT 5');
+      console.log('🏷️ Perfiles encontrados:', profiles.rows);
+      
+      res.json({
+        success: true,
+        message: "Test completo de BD exitoso",
+        results: {
+          connection: timeResult.rows[0],
+          table_structure: tableCheck.rows,
+          user_count: userCount.rows[0],
+          sample_users: users.rows,
+          profiles: profiles.rows
+        }
+      });
+      
+    } finally {
+      client.release();
+    }
+    
+  } catch (error) {
+    console.error('❌ Error en test completo:', error);
+    res.status(500).json({
+      success: false,
+      message: "Error en test de base de datos",
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // Duplicate test endpoint for /api prefix
 app.get("/api/test-db", async (req, res) => {
   try {
