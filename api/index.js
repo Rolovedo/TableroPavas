@@ -47,11 +47,12 @@ app.use(cookieParser());
 // Test endpoint
 app.get("/", (req, res) => {
   res.json({ 
-    message: "API funcionando correctamente", 
+    message: "API funcionando correctamente - RAMA DESARROLLO", 
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV,
     url: req.url,
-    path: req.path
+    path: req.path,
+    branch: "desarrollo"
   });
 });
 
@@ -270,7 +271,7 @@ app.post("/api/auth/login", async (req, res) => {
     } else {
       res.status(401).json({
         success: false,
-        message: "Credenciales incorrectas. Usa admin@tablero.com / admin123"
+        message: "Credenciales incorrectas. Por favor, verifica tu email y contraseña."
       });
     }
 
