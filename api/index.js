@@ -10,8 +10,24 @@ dotenv.config();
 
 const app = express();
 
-// Configuración PostgreSQL
+// Configuración PostgreSQL - Múltiples estrategias para máxima compatibilidad
+console.log('🔧 Configurando conexiones a BD...');
+console.log('🔍 DATABASE_URL disponible:', !!process.env.DATABASE_URL);
+console.log('🔍 DB_HOST disponible:', !!process.env.DB_HOST);
+
+// 1. Pool principal con DATABASE_URL (prioridad)
 const pool = new Pool({
+    connectionString: process.env.DATABASE_URL || `postgresql://${process.env.DB_USER || 'postgres'}:${process.env.DB_PASSWORD || '98631063ace'}@${process.env.DB_HOST || 'db.eukvsggruwdokftylssc.supabase.co'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'postgres'}`,
+    ssl: {
+        rejectUnauthorized: false
+    },
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+});
+
+// 2. Pool con variables individuales (fallback)
+const poolAlt = new Pool({
     host: process.env.DB_HOST || 'db.eukvsggruwdokftylssc.supabase.co',
     port: process.env.DB_PORT || 5432,
     user: process.env.DB_USER || 'postgres',
@@ -22,18 +38,10 @@ const pool = new Pool({
     },
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000,
 });
 
-// Configuración alternativa con connection string
-const poolAlt = new Pool({
-    connectionString: process.env.DATABASE_URL || 'postgresql://postgres:98631063ace@db.eukvsggruwdokftylssc.supabase.co:5432/postgres',
-    ssl: {
-        rejectUnauthorized: false
-    }
-});
-
-// Configuración con connection string como prioridad principal
+// 3. Pool con connection string hardcoded (último recurso)
 const poolDirect = new Pool({
     connectionString: 'postgresql://postgres:98631063ace@db.eukvsggruwdokftylssc.supabase.co:5432/postgres',
     ssl: {
@@ -41,7 +49,7 @@ const poolDirect = new Pool({
     },
     max: 20,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 10000,
 });
 
 // Middleware básico
@@ -96,10 +104,11 @@ app.get("/api/debug", (req, res) => {
     timestamp: new Date().toISOString(),
     env: {
       NODE_ENV: process.env.NODE_ENV,
-      DB_HOST: process.env.DB_HOST ? '***' : 'NO_CONFIGURADO',
-      DB_USER: process.env.DB_USER ? '***' : 'NO_CONFIGURADO', 
-      DB_PASSWORD: process.env.DB_PASSWORD ? '***' : 'NO_CONFIGURADO',
-      DB_NAME: process.env.DB_NAME ? '***' : 'NO_CONFIGURADO',
+      DATABASE_URL: process.env.DATABASE_URL ? 'CONFIGURADA (' + process.env.DATABASE_URL.substring(0, 30) + '...)' : 'NO_CONFIGURADA',
+      DB_HOST: process.env.DB_HOST || 'NO_CONFIGURADO',
+      DB_USER: process.env.DB_USER || 'NO_CONFIGURADO', 
+      DB_PASSWORD: process.env.DB_PASSWORD ? 'CONFIGURADA (***' + process.env.DB_PASSWORD.slice(-3) + ')' : 'NO_CONFIGURADA',
+      DB_NAME: process.env.DB_NAME || 'NO_CONFIGURADO',
       DB_PORT: process.env.DB_PORT || 'NO_CONFIGURADO'
     },
     hardcoded_values: {
@@ -107,6 +116,11 @@ app.get("/api/debug", (req, res) => {
       port: 5432,
       user: 'postgres', 
       database: 'postgres'
+    },
+    connection_strings: {
+      from_env: process.env.DATABASE_URL || 'NO DISPONIBLE',
+      constructed: `postgresql://${process.env.DB_USER || 'postgres'}:***@${process.env.DB_HOST || 'db.eukvsggruwdokftylssc.supabase.co'}:${process.env.DB_PORT || 5432}/${process.env.DB_NAME || 'postgres'}`,
+      hardcoded: 'postgresql://postgres:***@db.eukvsggruwdokftylssc.supabase.co:5432/postgres'
     }
   });
 });
@@ -167,46 +181,59 @@ app.get("/api/test-direct", async (req, res) => {
 app.get("/api/test-db-complete", async (req, res) => {
   try {
     console.log('🔌 Iniciando test completo de BD...');
+    console.log('🔍 DATABASE_URL env:', !!process.env.DATABASE_URL ? 'CONFIGURADA' : 'NO CONFIGURADA');
+    console.log('🔍 Variables individuales:', {
+      DB_HOST: !!process.env.DB_HOST,
+      DB_USER: !!process.env.DB_USER,
+      DB_PASSWORD: !!process.env.DB_PASSWORD,
+      DB_NAME: !!process.env.DB_NAME,
+      DB_PORT: !!process.env.DB_PORT
+    });
     
     let client;
-    let connection_type = "fallback";
+    let connection_type = "no_connection";
+    let lastError = null;
     
-    // Método 3: Connection string directa (más confiable)
+    // Método 1: DATABASE_URL (la nueva variable que agregamos)
     try {
-      console.log('🔗 Intentando con connection string directa...');
-      client = await poolDirect.connect();
-      connection_type = "direct_string";
-      console.log('✅ Conexión directa exitosa');
-    } catch (directError) {
-      console.log('❌ Falló conexión directa:', directError.message);
+      console.log('🔗 Intentando con DATABASE_URL...');
+      client = await pool.connect();
+      connection_type = "database_url";
+      console.log('✅ Conexión con DATABASE_URL exitosa');
+    } catch (databaseUrlError) {
+      console.log('❌ Falló conexión con DATABASE_URL:', databaseUrlError.message);
+      lastError = databaseUrlError;
       
-      // Método 1: Variables de entorno
+      // Método 2: Variables individuales
       try {
-        console.log('🔄 Intentando con variables de entorno...');
-        client = await pool.connect();
-        connection_type = "variables";
-        console.log('✅ Conexión con variables exitosa');
-      } catch (envError) {
-        console.log('❌ Falló conexión con variables:', envError.message);
+        console.log('🔄 Intentando con variables individuales...');
+        client = await poolAlt.connect();
+        connection_type = "individual_vars";
+        console.log('✅ Conexión con variables individuales exitosa');
+      } catch (varsError) {
+        console.log('❌ Falló conexión con variables:', varsError.message);
+        lastError = varsError;
         
-        // Método 2: Connection string con variables
+        // Método 3: Connection string hardcoded (último recurso)
         try {
-          console.log('🔄 Intentando con connection string alternativa...');
-          client = await poolAlt.connect();
-          connection_type = "alt_string";
-          console.log('✅ Conexión alternativa exitosa');
-        } catch (stringError) {
-          throw new Error(`Todas las conexiones fallaron: 
-            Directa: ${directError.message}
-            Variables: ${envError.message}
-            Alternativa: ${stringError.message}`);
+          console.log('🔄 Intentando con connection string hardcoded...');
+          client = await poolDirect.connect();
+          connection_type = "hardcoded_string";
+          console.log('✅ Conexión hardcoded exitosa');
+        } catch (hardcodedError) {
+          console.log('❌ Falló conexión hardcoded:', hardcodedError.message);
+          lastError = hardcodedError;
+          throw new Error(`Todas las conexiones fallaron:
+            DATABASE_URL: ${databaseUrlError.message}
+            Variables: ${varsError.message}
+            Hardcoded: ${hardcodedError.message}`);
         }
       }
     }
     
     try {
       // 1. Test de conexión básica
-      const timeResult = await client.query('SELECT NOW() as current_time');
+      const timeResult = await client.query('SELECT NOW() as current_time, version() as pg_version');
       console.log('✅ Conexión básica exitosa:', timeResult.rows[0]);
       
       // 2. Verificar que existe la tabla tbl_usuarios
@@ -248,6 +275,16 @@ app.get("/api/test-db-complete", async (req, res) => {
         success: true,
         message: `Test completo de BD exitoso (usando ${connection_type})`,
         connection_type: connection_type,
+        environment: {
+          DATABASE_URL: !!process.env.DATABASE_URL ? 'CONFIGURADA' : 'NO CONFIGURADA',
+          individual_vars: {
+            DB_HOST: !!process.env.DB_HOST,
+            DB_USER: !!process.env.DB_USER,
+            DB_PASSWORD: !!process.env.DB_PASSWORD,
+            DB_NAME: !!process.env.DB_NAME,
+            DB_PORT: !!process.env.DB_PORT
+          }
+        },
         results: {
           connection: timeResult.rows[0],
           table_structure: tableCheck.rows,
@@ -267,6 +304,16 @@ app.get("/api/test-db-complete", async (req, res) => {
       success: false,
       message: "Error en test de base de datos",
       error: error.message,
+      environment: {
+        DATABASE_URL: !!process.env.DATABASE_URL ? 'CONFIGURADA' : 'NO CONFIGURADA',
+        individual_vars: {
+          DB_HOST: !!process.env.DB_HOST,
+          DB_USER: !!process.env.DB_USER,
+          DB_PASSWORD: !!process.env.DB_PASSWORD,
+          DB_NAME: !!process.env.DB_NAME,
+          DB_PORT: !!process.env.DB_PORT
+        }
+      },
       stack: error.stack
     });
   }
@@ -416,21 +463,29 @@ app.post("/api/auth/login", async (req, res) => {
 
     console.log('🔐 Intentando autenticación para:', userEmail);
 
-    // Conectar a la base de datos con método directo más confiable
+    // Conectar a la base de datos con múltiples estrategias
     console.log('🔌 Intentando conectar a la base de datos...');
     let client;
     
     try {
-      // Intentar connection string directa primero
-      client = await poolDirect.connect();
-      console.log('✅ Conexión directa a BD exitosa');
-    } catch (directError) {
-      console.log('❌ Falló conexión directa, intentando alternativa...');
+      // Método 1: DATABASE_URL (prioridad)
+      client = await pool.connect();
+      console.log('✅ Conexión con DATABASE_URL exitosa');
+    } catch (databaseUrlError) {
+      console.log('❌ Falló DATABASE_URL, intentando variables...');
       try {
-        client = await pool.connect();
-        console.log('✅ Conexión alternativa a BD exitosa');
-      } catch (altError) {
-        throw new Error(`Error de conexión: Directa: ${directError.message}, Alt: ${altError.message}`);
+        // Método 2: Variables individuales
+        client = await poolAlt.connect();
+        console.log('✅ Conexión con variables individuales exitosa');
+      } catch (varsError) {
+        console.log('❌ Falló variables, intentando hardcoded...');
+        try {
+          // Método 3: Hardcoded (último recurso)
+          client = await poolDirect.connect();
+          console.log('✅ Conexión hardcoded exitosa');
+        } catch (hardcodedError) {
+          throw new Error(`Error de conexión total: DB_URL: ${databaseUrlError.message}, Vars: ${varsError.message}, Hard: ${hardcodedError.message}`);
+        }
       }
     }
     

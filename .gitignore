@@ -29,3 +29,4 @@ yarn-error.log*
 layout.css
 pages.css
 *.pdf
+.vercel
