@@ -874,28 +874,39 @@ app.get("/api/tablero/tareas", async (req, res) => {
       const result = await client.query(query);
       
       // Formatear las tareas para el frontend
-      const tareas = result.rows.map(row => ({
-        id: row.id,
-        title: row.titulo,
-        description: row.descripcion,
-        priority: row.prioridad,
-        status: row.estado,
-        category: row.categoria,
-        dueDate: row.fecha_vencimiento,
-        estimatedHours: row.horas_estimadas,
-        actualHours: row.horas_reales,
-        progress: row.progreso,
-        requiredSkills: row.habilidades_requeridas ? JSON.parse(row.habilidades_requeridas) : [],
-        createdAt: row.fecha_creacion,
-        updatedAt: row.fecha_actualizacion,
-        assignee: row.asignado_id ? {
-          id: row.asignado_id,
-          name: `${row.asignado_nombre} ${row.asignado_apellido}`.trim(),
-          email: row.asignado_email,
-          avatar: row.asignado_avatar || row.asignado_nombre?.substring(0, 2).toUpperCase()
-        } : null,
-        createdBy: `${row.creador_nombre} ${row.creador_apellido}`.trim()
-      }));
+      const tareas = result.rows.map(row => {
+        let parsedSkills = [];
+        if (row.habilidades_requeridas) {
+          try {
+            parsedSkills = JSON.parse(row.habilidades_requeridas);
+            if (!Array.isArray(parsedSkills)) parsedSkills = [];
+          } catch (e) {
+            parsedSkills = [];
+          }
+        }
+        return {
+          id: row.id,
+          title: row.titulo,
+          description: row.descripcion,
+          priority: row.prioridad,
+          status: row.estado,
+          category: row.categoria,
+          dueDate: row.fecha_vencimiento,
+          estimatedHours: row.horas_estimadas,
+          actualHours: row.horas_reales,
+          progress: row.progreso,
+          requiredSkills: parsedSkills,
+          createdAt: row.fecha_creacion,
+          updatedAt: row.fecha_actualizacion,
+          assignee: row.asignado_id ? {
+            id: row.asignado_id,
+            name: `${row.asignado_nombre} ${row.asignado_apellido}`.trim(),
+            email: row.asignado_email,
+            avatar: row.asignado_avatar || row.asignado_nombre?.substring(0, 2).toUpperCase()
+          } : null,
+          createdBy: `${row.creador_nombre} ${row.creador_apellido}`.trim()
+        };
+      });
       
       console.log(`✅ ${tareas.length} tareas encontradas`);
       
