@@ -4,7 +4,7 @@ class AuthService {
     constructor() {
         // Usar la URL de producción de Vercel para el API
         this.baseURL = process.env.NODE_ENV === 'production' 
-            ? 'https://tablero-pavas-git-desarrollo-acevedos-projects.vercel.app'
+            ? 'https://tablero-pavas.vercel.app'
             : 'http://localhost:5000';
     }
 

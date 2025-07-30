@@ -76,6 +76,8 @@ app.use(cors({
     "http://localhost:3001",
     "https://pavastecnologia.com",
     "https://tablero-pavas.vercel.app",
+    "https://tablero-pavas-git-main-acevedos-projects.vercel.app",
+    "https://tablero-pavas-git-desarrollo-acevedos-projects.vercel.app", 
     "https://*.vercel.app"
   ],
   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -87,25 +89,25 @@ app.use(cookieParser());
 // Test endpoint
 app.get("/", (req, res) => {
   res.json({ 
-    message: "API funcionando correctamente - RAMA DESARROLLO", 
+    message: "API funcionando correctamente - RAMA MAIN", 
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV,
     url: req.url,
     path: req.path,
-    branch: "desarrollo"
+    branch: "main"
   });
 });
 
 // Endpoint raíz API también
 app.get("/api", (req, res) => {
   res.json({ 
-    message: "API funcionando correctamente desde /api - RAMA DESARROLLO", 
+    message: "API funcionando correctamente desde /api - RAMA MAIN", 
     timestamp: new Date().toISOString(),
     env: process.env.NODE_ENV,
     url: req.url,
     path: req.path,
-    branch: "desarrollo",
-    version: "v1.1-dev"
+    branch: "main",
+    version: "v1.2-production"
   });
 });
 
