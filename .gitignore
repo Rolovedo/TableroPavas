@@ -5,6 +5,9 @@
 
 # dependencies
 /node_modules
+/client/node_modules
+/api/node_modules
+node_modules/
 package-lock.json
 
 # testing
