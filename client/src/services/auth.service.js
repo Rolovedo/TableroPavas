@@ -6,6 +6,9 @@ class AuthService {
         this.baseURL = process.env.NODE_ENV === 'production' 
             ? 'https://tablero-pavas.vercel.app'
             : 'http://localhost:5000';
+            
+        console.log('🌐 AuthService inicializado con baseURL:', this.baseURL);
+        console.log('🔍 NODE_ENV:', process.env.NODE_ENV);
     }
 
     // Verificar si hay token válido para tablero
@@ -42,9 +45,12 @@ class AuthService {
     // Login real con backend de base de datos
     loginWithBackend = async (email, password) => {
         try {
+            const url = `${this.baseURL}/api/auth/login`;
             console.log('🔐 Iniciando login con backend BD:', email);
+            console.log('🌐 URL completa del request:', url);
+            console.log('🔍 BaseURL configurada:', this.baseURL);
             
-            const response = await fetch(`${this.baseURL}/api/auth/login`, {
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

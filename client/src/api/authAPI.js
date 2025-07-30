@@ -1,5 +1,5 @@
 // Configuración de URL por entorno  
-const BASE_URL = process.env.REACT_APP_API_URL || 'https://tablero-pavas-git-desarrollo-acevedos-projects.vercel.app';
+const BASE_URL = process.env.REACT_APP_API_URL || 'https://tablero-pavas.vercel.app';
 
 console.log('🌐 BASE_URL configurada:', BASE_URL);
 console.log('🔍 Variables de entorno:', {
