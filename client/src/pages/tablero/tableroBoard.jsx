@@ -49,11 +49,12 @@ const TableroBoard = () => {
     });
 
     // Opciones para dropdowns
+    // Los valores deben coincidir con los del backend: 'baja', 'media', 'alta', 'muy-alta'
     const priorityOptions = [
-        { label: 'Baja', value: 'low', color: '#28a745' },
-        { label: 'Media', value: 'medium', color: '#17a2b8' },
-        { label: 'Alta', value: 'high', color: '#ffc107' },
-        { label: 'Muy Alta', value: 'very-high', color: '#dc3545' }
+        { label: 'Baja', value: 'baja', color: '#28a745' },
+        { label: 'Media', value: 'media', color: '#17a2b8' },
+        { label: 'Alta', value: 'alta', color: '#ffc107' },
+        { label: 'Muy Alta', value: 'muy-alta', color: '#dc3545' }
     ];
 
     const categoryOptions = [
@@ -127,10 +128,9 @@ const TableroBoard = () => {
                 title: newTask.title,
                 description: newTask.description,
                 assignee: newTask.assignee,
-                // Mapear correctamente prioridad y categoría según lo que espera el backend
-                priority: newTask.priority?.value,
+                priority: newTask.priority?.value || 'media',
                 status: selectedColumn,
-                category: newTask.category?.value,
+                category: newTask.category?.value || 'sin-categoria',
                 dueDate: newTask.dueDate,
                 estimatedHours: newTask.estimatedHours || 0,
                 actualHours: newTask.actualHours || 0,
@@ -144,8 +144,8 @@ const TableroBoard = () => {
                 [selectedColumn]: [...prevTasks[selectedColumn], {
                     ...tareaCreada,
                     assignee: newTask.assignee,
-                    priority: newTask.priority?.value,
-                    category: newTask.category?.value,
+                    priority: newTask.priority?.value || 'media',
+                    category: newTask.category?.value || 'sin-categoria',
                     dueDate: newTask.dueDate,
                     estimatedHours: newTask.estimatedHours || 0,
                     actualHours: newTask.actualHours || 0,
@@ -297,8 +297,15 @@ const TableroBoard = () => {
                         <div className="task-header">
                             <h4 className="task-title">{task.title}</h4>
                             <Badge 
-                                value={task.priority} 
-                                severity={task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warning' : 'success'}
+                                value={
+                                    priorityOptions.find(opt => opt.value === task.priority)?.label || task.priority
+                                }
+                                severity={
+                                    task.priority === 'muy-alta' ? 'danger' :
+                                    task.priority === 'alta' ? 'warning' :
+                                    task.priority === 'media' ? 'info' :
+                                    'success'
+                                }
                             />
                         </div>
                         
@@ -317,7 +324,9 @@ const TableroBoard = () => {
                             </div>
                             
                             {task.category && (
-                                <Chip label={task.category} className="category-chip" />
+                                <Chip label={
+                                    categoryOptions.find(opt => opt.value === task.category)?.label || task.category
+                                } className="category-chip" />
                             )}
                         </div>
                         
